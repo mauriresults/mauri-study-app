@@ -22,6 +22,10 @@ def main():
         raise RuntimeError('apksigner is unavailable')
     tools.sort(key=lambda p: tuple(int(n) for n in p.parent.name.split('.') if n.isdigit()))
     subprocess.run([str(tools[-1]), 'verify', '--verbose', '--print-certs', str(apk)],check=True)
+    badging=subprocess.check_output([str(tools[-1].with_name('aapt')),'dump','badging',str(apk)],text=True)
+    if "application-label:'Mauri student'" not in badging:
+        raise RuntimeError('APK application label is not Mauri student')
+    print('Verified Android application label: Mauri student')
     checksum = hashlib.sha256()
     with apk.open('rb') as source:
         for block in iter(lambda: source.read(8 * 1024 * 1024), b''):

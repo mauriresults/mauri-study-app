@@ -9,19 +9,82 @@ import 'models.dart';
 
 /// This application uses its OWN SQLite storage; it does not touch website data.
 class AppStorage {
-  static const clientHeaders = {'User-Agent':'MauriStudy/0.1.0'};
-  late final Database db;
+  static const clientHeaders = {'User-Agent':'MauriStudent/0.2.0'};
+  Database? _database;
+  Database get db => _database ?? (throw StateError('Storage is not open'));
+  bool _disposed = false;
   final String api;
+  final String? databasePath;
   final Map<int, Future<String>> _activeDownloads = {};
-  AppStorage(this.api);
+  AppStorage(this.api,{this.databasePath});
 
   Future<void> open() async {
-    final dir = await getDatabasesPath();
-    db = await openDatabase(p.join(dir,'mauri_study_v1.sqlite'),version:1,
+    final location = databasePath??p.join(await getDatabasesPath(),'mauri_study_v1.sqlite');
+    final opened = await openDatabase(location,version:2,
       onCreate:(d,v) async {
         await d.execute('CREATE TABLE catalog(id INTEGER PRIMARY KEY, payload TEXT NOT NULL, synced_at TEXT NOT NULL)');
         await d.execute('CREATE TABLE downloads(id INTEGER PRIMARY KEY, local_path TEXT NOT NULL, saved_at TEXT NOT NULL)');
+        await _createUserTables(d);
+      },
+      onUpgrade:(d,oldVersion,newVersion) async {
+        if (oldVersion < 2) await _createUserTables(d);
       });
+    if (_disposed) {
+      await opened.close();
+      throw StateError('Storage was disposed');
+    }
+    _database = opened;
+  }
+
+  static Future<void> _createUserTables(DatabaseExecutor database) async {
+    await database.execute('CREATE TABLE IF NOT EXISTS favorites(resource_id INTEGER PRIMARY KEY)');
+    await database.execute('CREATE TABLE IF NOT EXISTS preferences(setting_key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  }
+
+  Future<UserPreferences> preferences() async {
+    final rows = await db.query('preferences');
+    return UserPreferences.fromMap({for (final row in rows) row['setting_key'] as String:row['value'] as String});
+  }
+
+  Future<void> savePreferences(UserPreferences preferences) async {
+    final batch = db.batch();
+    for (final entry in preferences.toMap().entries) {
+      batch.insert('preferences',{'setting_key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult:true);
+  }
+
+  Future<Set<int>> favorites() async => (await db.query('favorites')).map((row)=>row['resource_id'] as int).toSet();
+
+  Future<void> setFavorite(int id,bool value) async {
+    if (value) {
+      await db.insert('favorites',{'resource_id':id},conflictAlgorithm:ConflictAlgorithm.ignore);
+    } else {
+      await db.delete('favorites',where:'resource_id=?',whereArgs:[id]);
+    }
+  }
+
+  Future<int> storageBytes() async {
+    final directory = Directory(p.join((await getApplicationDocumentsDirectory()).path,'pdfs'));
+    if (!await directory.exists()) return 0;
+    var total = 0;
+    await for (final file in directory.list(followLinks:false)) {
+      if (file is File) total += await file.length();
+    }
+    return total;
+  }
+
+  Future<void> clearDownloads() async {
+    if (_activeDownloads.isNotEmpty) throw StateError('Downloads are active');
+    final directory = Directory(p.join((await getApplicationDocumentsDirectory()).path,'pdfs'));
+    if (await directory.exists()) {
+      await for (final file in directory.list(followLinks:false)) {
+        if (file is File && RegExp(r'^\d+(?:-[a-f0-9]{64})?\.pdf(?:\.part)?$').hasMatch(p.basename(file.path))) {
+          await file.delete();
+        }
+      }
+    }
+    await db.delete('downloads');
   }
 
   Future<Catalog?> cachedCatalog() async {
@@ -175,5 +238,10 @@ class AppStorage {
     await db.delete('downloads',where:'id=?',whereArgs:[id]);
   }
 
-  Future<void> dispose() => db.close();
+  Future<void> dispose() async {
+    _disposed = true;
+    final database = _database;
+    _database = null;
+    if (database != null && database.isOpen) await database.close();
+  }
 }

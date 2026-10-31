@@ -53,6 +53,56 @@ class Catalog {
 
 String humanSize(int bytes) {
   if (bytes <= 0) return '—';
+  if (bytes >= 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+class UserPreferences {
+  final bool french;
+  final String theme;
+  const UserPreferences({this.french=false,this.theme='system'});
+  factory UserPreferences.fromMap(Map<String,String> values) => UserPreferences(
+    french:values['language']=='fr',
+    theme:const {'light','dark','system'}.contains(values['theme'])?values['theme']!:'system',
+  );
+  Map<String,String> toMap() => {'language':french?'fr':'ar','theme':theme};
+  UserPreferences copyWith({bool? french,String? theme}) => UserPreferences(french:french??this.french,theme:theme??this.theme);
+}
+
+String normalizeSearch(String value) => value.toLowerCase()
+    .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'),'')
+    .replaceAll(RegExp('[أإآٱ]'),'ا')
+    .replaceAll(RegExp('[éèêë]'),'e')
+    .replaceAll(RegExp('[àâä]'),'a')
+    .replaceAll(RegExp('[îï]'),'i')
+    .replaceAll(RegExp('[ôö]'),'o')
+    .replaceAll(RegExp('[ùûü]'),'u')
+    .replaceAll('ç','c').trim();
+
+List<Resource> filterResources(Catalog catalog,{
+  String? levelId,String? trackId,String? subjectId,String section='all',
+  int? year,String query='',Set<int>? allowedIds,
+}) {
+  final tracks = catalog.tracks.where((node)=>levelId==null||node.levelId==levelId).map((node)=>node.id).toSet();
+  final subjects = catalog.subjects.where((node)=>(trackId==null||node.trackId==trackId)&&tracks.contains(node.trackId)).map((node)=>node.id).toSet();
+  final words = normalizeSearch(query).split(RegExp(r'\s+')).where((word)=>word.isNotEmpty).toList();
+  final result = catalog.resources.where((resource){
+    if (allowedIds!=null&&!allowedIds.contains(resource.id)) return false;
+    if (subjectId!=null&&resource.subjectId!=subjectId) return false;
+    if ((levelId!=null||trackId!=null)&&!subjects.contains(resource.subjectId)) return false;
+    if (year!=null&&resource.examYear!=year) return false;
+    if (section=='practice'&&!const {'exercise','summary'}.contains(resource.kind)) return false;
+    if (section!='all'&&section!='practice'&&resource.kind!=section) return false;
+    final haystack = normalizeSearch('${resource.titleAr} ${resource.titleFr} ${resource.examYear??''}');
+    return words.every(haystack.contains);
+  }).toList();
+  result.sort((a,b){
+    if (section=='exam') {
+      final years = (b.examYear??0).compareTo(a.examYear??0);
+      if (years!=0) return years;
+    }
+    return b.id.compareTo(a.id);
+  });
+  return result;
 }
