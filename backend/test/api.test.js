@@ -186,3 +186,17 @@ test('resource pagination supports 500 items per call', async () => {
   assert.equal(res.status,200);
   assert.equal(limit,500);
 });
+
+test('resource JSON exposes source classification but never private storage keys', async () => {
+  const row={id:77,subject_id:'bac-d-math',title_ar:'التصحيح النموذجي',title_fr:'',
+    kind:'exam',exam_year:2025,file_size:118225,sha256:'abc',updated_at:'2026-10-31',
+    source_category:'تصحيحات',year_label:'2025',object_key:'private/hidden.pdf'};
+  const mockDB={prepare:()=>({bind(){return this;},async first(){return row;}})};
+  const res=await worker.fetch(request('/v1/resources/77'),{DB:mockDB});
+  const json=await res.json();
+  assert.equal(res.status,200);
+  assert.equal(json.source_category,'تصحيحات');
+  assert.equal(json.year_label,'2025');
+  assert.equal(json.object_key,undefined);
+});
+
