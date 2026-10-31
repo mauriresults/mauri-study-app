@@ -49,8 +49,11 @@ class _StudyHomeState extends State<StudyHome> {
       final files=await store.downloaded();
       if(!mounted)return;
       setState((){catalog=cached;local=files;});
-      if(apiBase.isNotEmpty)await _refresh();
-      else setState(()=>status='لم يُضبط عنوان API بعد. الملفات المحفوظة تعمل دون إنترنت.');
+      if(apiBase.isNotEmpty) {
+        await _refresh();
+      } else {
+        setState(()=>status='لم يُضبط عنوان API بعد. الملفات المحفوظة تعمل دون إنترنت.');
+      }
     }catch(e){if(mounted)setState(()=>status='خطأ في التهيئة: $e');}
   }
 
@@ -62,9 +65,11 @@ class _StudyHomeState extends State<StudyHome> {
       final files=await store.downloaded();
       if(mounted)setState((){catalog=updated;local=files;status=null;});
     }catch(_){
-      if(mounted)setState(()=>status=catalog==null
+      if(mounted) {
+        setState(()=>status=catalog==null
         ?'تعذر الاتصال بالمكتبة. اتصل بالإنترنت للمزامنة الأولى.'
         :'أنت الآن في وضع عدم الاتصال. يمكنك فتح المواد المحفوظة.');
+      }
     }finally{if(mounted)setState(()=>busy=false);}
   }
 

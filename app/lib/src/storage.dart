@@ -70,8 +70,11 @@ class AppStorage {
     for (final r in rows) {
       final id = r['id'] as int;
       final path = r['local_path']! as String;
-      if (await File(path).exists()) valid[id] = path;
-      else await db.delete('downloads',where:'id=?',whereArgs:[id]);
+      if (await File(path).exists()) {
+        valid[id] = path;
+      } else {
+        await db.delete('downloads',where:'id=?',whereArgs:[id]);
+      }
     }
     return valid;
   }

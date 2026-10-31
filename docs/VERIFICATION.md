@@ -6,11 +6,13 @@ This is a partial development update to the supplied starter. It is not a comple
 
 - `node backend/test/api.test.js`: 13 tests passed. These are local request tests with D1/R2 doubles, not external service tests.
 - `python -m unittest discover -s scripts/tests -v`: 8 tests passed. Includes rejection of corrupt readback and missing publication-rights evidence.
+- GitHub Actions run `41211058566` completed successfully for API and importer tests.
+- GitHub Actions Android run `41211058574` installed Flutter 3.47.9 and completed `flutter pub get`. Analysis failed on the generated counter-app test (`MyApp` was not defined) and five lint findings. Native generation now uses an isolated temporary template and copies only native projects, and the lint findings were fixed. A new successful run is still required.
 - Cloudflare connected-account reads confirmed the exact independent D1 database `124dee36-99ce-4365-8cf9-af0b01b2d1d7`, R2 bucket `mauri-study-files`, and Worker `mauri-study-app-api` bindings `DB` and `FILES`. No other project was modified.
 
 ## Not verified or delivered
 
-- Flutter SDK and Android SDK are unavailable. Their download could not complete because the execution proxy was unreachable and network permission requests did not complete. `flutter pub get`, `flutter analyze`, `flutter test`, APK and AAB builds were not run.
+- Flutter SDK and Android SDK remain unavailable in the local editing workspace. Android builds can run through GitHub Actions. The first remote analysis failed as documented above; Flutter tests, APK and AAB builds have not completed successfully yet.
 - No macOS/Xcode environment or Apple signing was available. No iOS build was performed. Native Android/iOS projects are still absent; the existing bootstrap script generates them on a suitably equipped machine.
 - New Dart changes require analysis, tests, and device checks. Resume, simultaneous downloads, airplane mode, PDF rendering, localization, and large-list performance have not been verified on a device.
 - No external API HTTP smoke test, storage-private-access test, stress test, or Worker deployment was completed.
@@ -24,7 +26,7 @@ This is a partial development update to the supplied starter. It is not a comple
 - Suffix ranges, If-Range, If-None-Match, exposed range headers and bodyless HEAD responses are handled. Invalid pagination cursors return 400.
 - Downloads deduplicate concurrent requests for the same ID; files and partials are versioned by SHA-256. Existing completed files are checked before reuse. Writes await disk completion and idle streams time out.
 - Import publication requires a recorded rights-evidence field. This is a human-supplied reference, not automated legal verification. Stored bytes are streamed back and hashed before D1 indexing. Existing keys with different content are not overwritten.
-- A GitHub Actions workflow was added for local API and importer tests. It has not run remotely.
+- A GitHub Actions workflow was added for API and importer tests; its first remote run passed. The Android workflow pins the verified Flutter SDK version and generates native scaffolds without adding unrelated counter-app tests.
 
 ## Next execution steps
 
