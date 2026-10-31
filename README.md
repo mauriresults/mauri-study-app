@@ -4,7 +4,9 @@
 
 ## تحميل التطبيق
 
-- **[تنزيل أحدث إصدارات Android من GitHub Releases](https://github.com/mauriresults/mauri-study-app/releases)** — ابحث عن **compact ARM64** للغالبية العظمى من الهواتف الحديثة، أو **ARM32** للأجهزة الأقدم. لا تُنزّل النسختين معًا.
+- **[تنزيل النسخة الخفيفة ARM64 (18.7 MB)](https://github.com/mauriresults/mauri-study-app/releases/download/preview-compact-499494a8/Mauri-student-0.2.0-arm64-v8a-compact-preview.apk)** — للهواتف الحديثة (الموصى بها).
+- **[تنزيل النسخة الخفيفة ARM32 (16.2 MB)](https://github.com/mauriresults/mauri-study-app/releases/download/preview-compact-499494a8/Mauri-student-0.2.0-armeabi-v7a-compact-preview.apk)** — للهواتف القديمة 32-bit.
+- **[صفحة الإصدار الخفيف وبصمات SHA-256](https://github.com/mauriresults/mauri-study-app/releases/tag/preview-compact-499494a8)**. لا تُنزّل النسختين معًا.
 - **[بناء Android الخفيف واختباراته](https://github.com/mauriresults/mauri-study-app/actions/workflows/compact-android.yml)**.
 - **[مستند تثبيت مفاتيح Google Play وبناء AAB](docs/GOOGLE_PLAY_SIGNING.md)**.
 - **[تقرير نقل المراجع وحجم التطبيق](docs/LIBRARY_AND_SIZE_2026-10-31.md)**.
