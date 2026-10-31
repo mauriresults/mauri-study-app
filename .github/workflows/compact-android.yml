@@ -1,6 +1,11 @@
 name: Build compact Android release previews
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - ".github/workflows/compact-android.yml"
   push:
     branches: [main]
     paths:
