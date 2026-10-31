@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "api": "https://mauri-study-app-api.mauri-study-app.workers.dev",
+  "verified_files": 8,
+  "verified_bytes": 1816924,
+  "audit_http_bytes": 3643175,
+  "new_files_imported": 0,
+  "files": [],
+  "workflow_run": "https://github.com/mauriresults/mauri-study-app/actions/runs/41212161760",
+  "artifact_id": 13047125554,
+  "checks": [
+    "health",
+    "catalog",
+    "resources pagination",
+    "resource detail",
+    "missing resources and files",
+    "public POST rejected",
+    "PDF HEAD",
+    "full PDF SHA-256",
+    "split range resume",
+    "suffix range",
+    "ETag 304",
+    "out-of-bounds range 416",
+    "cache-control header"
+  ],
+  "limits": [
+    "Sequential HTTP audit; no device or airplane-mode test",
+    "No load test or actual connection interruption",
+    "R2 privacy checked through management settings separately"
+  ]
+}

@@ -1,40 +1,71 @@
-# Actual verification and delivery status
+# Verified delivery and outstanding work — 2026-10-31
 
-This is a partial development update to the supplied starter. It is not a completed Android/iOS delivery.
+This is a partial development delivery of the supplied starter. A real debug APK was built and signed, but it has not been installed on a device and the full requested product scope is incomplete.
 
-## Executed checks
+## Download and source
 
-- `node backend/test/api.test.js`: 13 tests passed. These are local request tests with D1/R2 doubles, not external service tests.
-- `python -m unittest discover -s scripts/tests -v`: 8 tests passed. Includes rejection of corrupt readback and missing publication-rights evidence.
-- GitHub Actions run `41211058566` completed successfully for API and importer tests.
-- GitHub Actions Android run `41211058574` installed Flutter 3.47.9 and completed `flutter pub get`. Analysis failed on the generated counter-app test (`MyApp` was not defined) and five lint findings. Native generation now uses an isolated temporary template and copies only native projects, and the lint findings were fixed. A new successful run is still required.
-- Follow-up Android run `41211290108` passed package resolution, analysis and Flutter tests, and built `app-debug.apk`. Its public API smoke check then received HTTP 403, so the old sequential workflow did not publish the APK artifact. Build artifacts and API smoke checks now run independently; API failures remain visible and fail their own job. APK signature verification and native-source artifacts were added for subsequent builds.
-- Cloudflare connected-account reads confirmed the exact independent D1 database `124dee36-99ce-4365-8cf9-af0b01b2d1d7`, R2 bucket `mauri-study-files`, and Worker `mauri-study-app-api` bindings `DB` and `FILES`. No other project was modified.
-- Live D1 reads confirmed 8 published rows, a recorded total of 1,816,924 bytes, and 8 SHA-256 fields of length 64. `PRAGMA foreign_key_check` returned no violations. R2's managed public domain is disabled and there are no custom public domains. These checks do not establish the integrity of the stored PDF bytes.
+- Repository: https://github.com/mauriresults/mauri-study-app
+- Successful Android/API-smoke run: https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313
+- APK ZIP: https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313/artifacts/13047215595
+- Native Android/iOS projects and dependency lock: https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313/artifacts/13046389089
+- API: https://mauri-study-app-api.mauri-study-app.workers.dev
+- Full deployed API/PDF audit: https://github.com/mauriresults/mauri-study-app/actions/runs/41212161760
+- API audit checksum-report artifact: https://github.com/mauriresults/mauri-study-app/actions/runs/41212161760/artifacts/13047125554
 
-## Not verified or delivered
+The APK source commit is `1b4aed188e31f9b4d54bd5d5bf3d597a93f012a3`. Subsequent audit/documentation commits do not change the app. Artifact downloads require GitHub login and expire on 2027-01-29. Extract `app-debug.apk` and allow installation from your chosen file manager/browser on a test Android device; no installation success is claimed.
 
-- Flutter SDK and Android SDK remain unavailable in the local editing workspace. Package resolution, analysis, Flutter tests and a debug APK build succeeded in GitHub Actions run `41211290108`; AAB builds have not been performed. No APK installation or device tests have been performed.
-- No macOS/Xcode environment or Apple signing was available. No iOS build was performed. Android/iOS native project generation succeeded on the CI runner; native projects are not yet committed to the repository. The workflow now includes an artifact for generated native projects and the resolved dependency lock.
-- New Dart changes require analysis, tests, and device checks. Resume, simultaneous downloads, airplane mode, PDF rendering, localization, and large-list performance have not been verified on a device.
-- The external API HTTP smoke test failed at health with HTTP 403. End-to-end PDF delivery is therefore not verified. No storage-access HTTP test, stress test, or Worker deployment was completed. R2 privacy settings were verified through Cloudflare's management API only.
-- No new educational files were transferred or published. The existing 8 rows / 1,816,924 recorded bytes were confirmed in D1 but have not been independently verified by downloading and hashing those files.
-- The full requested interface, favorites, persisted settings, corrections, production signing, Drive ingestion pipeline, and resumable multipart imports remain incomplete.
-- The owner created the independent public repository `mauriresults/mauri-study-app` and added it to the connected GitHub app installation. Its identity and inclusion in the allowed repositories were verified. The previous missing-repository and installation-access blockers are resolved. No existing application repository was used or modified.
+APK size: **153,979,716 bytes**; ZIP size: **73,327,806 bytes**. This is an unoptimized universal debug build containing Flutter runtime and multiple ABIs, not a bundled PDF library. A small optimized store build is still required.
 
-## Changed behavior
+APK SHA-256: `506c25459cad6ad8009024f50f41239d0287df260ec354da20f78438a2ec8d02`.
 
-- R2 metadata is read with `head`; HEAD and invalid ranges never open a full body. Full and partial downloads each use one body read guarded against a concurrent object replacement.
-- Suffix ranges, If-Range, If-None-Match, exposed range headers and bodyless HEAD responses are handled. Invalid pagination cursors return 400.
-- Downloads deduplicate concurrent requests for the same ID; files and partials are versioned by SHA-256. Existing completed files are checked before reuse. Writes await disk completion and idle streams time out.
-- Import publication requires a recorded rights-evidence field. This is a human-supplied reference, not automated legal verification. Stored bytes are streamed back and hashed before D1 indexing. Existing keys with different content are not overwritten.
-- A GitHub Actions workflow was added for API and importer tests; its first remote run passed. The Android workflow pins the verified Flutter SDK version and generates native scaffolds without adding unrelated counter-app tests.
+`apksigner verify --verbose --print-certs` passed with APK Signature Scheme v2. APK ZIP integrity, manifest/classes entries, and arm64 Flutter library were checked. It uses debug signing, not production store signing.
 
-## Next execution steps
+## Executed checks and evidence
 
-1. Use the independent repository `https://github.com/mauriresults/mauri-study-app` and check its Actions runs after each push. Remote CI success requires a completed successful run and must not be inferred from the workflow files alone.
-2. Install Flutter stable plus Android SDK; run `bash scripts/bootstrap_flutter.sh`, then build and test a debug APK. Resolve any Dart or platform failures before distributing it.
-3. Run the API tests against local real D1/R2 bindings, then deploy only the independent Worker and run `python scripts/verify_remote_api.py --check-download`. Add full-file SHA-256, pagination, privacy and cache checks before release.
-4. Complete the outstanding UI, offline and import requirements. Record explicit redistribution rights for each source before publication.
-5. For Google Play, supply a private release keystore through CI secrets and build a signed AAB. Do not use the debug certificate for a store release.
-6. For App Store, generate the iOS platform on macOS, configure the bundle ID/team and signing in Xcode, test on an iPhone, and archive with an authorized Apple developer account. Neither store publication nor paid account enrollment has been performed.
+| Check | Actual result |
+| --- | --- |
+| Flutter 3.47.9 package resolution | Passed on GitHub Actions |
+| Flutter analysis | Passed, zero findings |
+| Flutter tests | 2 existing model tests passed |
+| Android debug APK build | Passed |
+| APK structure/signature | Passed, artifact uploaded |
+| API unit tests | 13 passed locally and remotely |
+| Importer tests | 8 passed locally and remotely |
+| External API/PDF audit | Passed for all 8 existing PDFs |
+| D1 foreign keys | `PRAGMA foreign_key_check` returned no violations |
+| R2 public-domain configuration | Managed domain disabled; no custom public domains |
+
+The external audit tested all five requested endpoints, bounded pagination, resource detail, missing resources/files, rejection of public POST, HEAD, cache headers, full PDF downloads, SHA-256, split-range resume, suffix ranges, ETag 304 and invalid-range 416. It verified **8 files / 1,816,924 bytes**, with 3,643,175 HTTP response bytes used by the audit. See `API_AUDIT_2026-10-31.json`; the workflow artifact contains the individual hashes.
+
+**New files imported or published: 0. The 50 GB target library has not been migrated.** Existing PDFs were read and checked without changing their publication state.
+
+The initial external 403 was Cloudflare error 1010 rejecting the default Python library User-Agent on workers.dev. A descriptive Mauri Study application identity, as recommended in Cloudflare's error-1010 documentation, resolved it. No browser identity was impersonated or security setting disabled.
+
+Worker corrections were deployed only to `mauri-study-app-api`, retaining D1 `124dee36-99ce-4365-8cf9-af0b01b2d1d7` and R2 `mauri-study-files`. No migrations, content imports or changes to the MauriResults application/repository/database/deployment were made. No new paid service or purchase was performed.
+
+## Implemented corrections
+
+- File HEAD and rejected ranges avoid opening an R2 body; full and ranged reads use an ETag guard against concurrent replacement.
+- Suffix ranges, If-Range, If-None-Match, exposed range headers, bodyless HEAD and invalid pagination cursors are handled.
+- Downloads deduplicate simultaneous requests for the same ID, version files/partials by SHA-256, verify existing files before reuse, await disk writes, and time out idle streams. These changes passed analysis but do not have mobile integration-test coverage yet.
+- Import publication requires a human-supplied rights-evidence reference. Stored bytes are streamed back and hashed before D1 indexing; existing keys with different content are not overwritten. The rights field is not an automated legal verification.
+- CI separates API availability checks from APK artifacts while preserving failing checks, verifies APK signatures/checksums, and generates native projects without counter-app tests.
+
+## Not completed or verified
+
+- The complete requested screens/sections, favorites, persisted language/theme settings, exam corrections, final icon/branding and official application-identifier review.
+- Installation on Android, PDF rendering on a phone, airplane mode, actual interrupted/mobile downloads, concurrent-download behavior, Arabic/French/RTL device testing, large-list performance and API load testing. The external range audit verifies protocol behavior, not a real socket interruption or mobile UI.
+- Download retry/queue management, UI cleanup of abandoned partial files and complete local-storage accounting.
+- Google Drive folder ingestion, resumable multipart upload across importer restarts, SHA deduplication across different object keys, complete retry/audit logging and classification of the full library. Allowed source folders and explicit redistribution evidence are still needed for new publication.
+- Native platform files are available as a generated artifact but are not committed to the repository. The dependency lock used by the build is in that artifact.
+- AAB generation, production signing, store CI/release configuration, Play Console publication and optimized release size.
+- macOS/Xcode/iPhone tests, iOS compilation, Apple certificates, App Store archive and publication. Generating the iOS scaffold on Linux is not an iOS build.
+- Direct unauthenticated HTTP probing of the R2 hostname. Privacy was checked through management settings; public-write rejection was checked on the Worker API.
+
+## Development and store preparation
+
+1. Restore the generated native projects and `pubspec.lock` artifact if reproducing this exact build. Use Flutter 3.47.9 and Android SDK, then run `bash scripts/bootstrap_flutter.sh`. New Dart/platform changes require fresh analysis, tests and device checks.
+2. Use `backend/wrangler.toml` and the correct existing Cloudflare account for future Worker changes; run tests before deployment and external audit afterward. The audit has a default 32 MiB response budget.
+3. Complete the outstanding product and import work, obtain distribution rights for each new source, and perform device/offline/accessibility/performance testing.
+4. For Google Play, review the package identifier, provision a private release keystore through CI secrets, configure release signing and build a signed AAB. Never publish the debug certificate as the store signing identity.
+5. For App Store, use macOS/Xcode with an authorized Apple developer account, review bundle ID/team settings, configure signing, test on an iPhone and archive. No enrollment or purchase has been performed.

@@ -26,3 +26,4 @@ node_modules/
 *.sqlite
 *.log
 scripts/imported-drive-audit.csv
+__pycache__/
