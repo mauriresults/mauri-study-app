@@ -49,4 +49,24 @@ void main(){
     expect(filterResources(c,query:'cinquieme').length,1);
   });
 
+  test('corrections have their own type and respect exam year filters', () {
+    final catalog = Catalog.fromMap({
+      'levels': [{'id':'bac','name_ar':'البكالوريا'}],
+      'tracks': [{'id':'d','level_id':'bac'}],
+      'subjects': [{'id':'math','track_id':'d'}],
+      'resources': [
+        {'id':1,'subject_id':'math','kind':'exam','title_ar':'موضوع الرياضيات 2025','exam_year':2025},
+        {'id':2,'subject_id':'math','kind':'exam','title_ar':'التصحيح النموذجي 2025','exam_year':2025},
+        {'id':3,'subject_id':'math','kind':'exam','title_ar':'Corrigé de mathématiques 2024','exam_year':2024,
+         'source_category':'تصحيحات','year_label':'2024'},
+      ],
+    });
+    expect(catalog.resources[1].browseKind,'solution');
+    expect(catalog.resources[1].typeLabel(false),'تصحيح وحل');
+    expect(catalog.resources[2].typeLabel(true),'Corrigé');
+    expect(catalog.resources[2].yearLabel,'2024');
+    expect(filterResources(catalog,subjectId:'math',section:'exam').map((r)=>r.id),[1]);
+    expect(filterResources(catalog,subjectId:'math',section:'solution',year:2025).map((r)=>r.id),[2]);
+  });
+
 }
