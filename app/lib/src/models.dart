@@ -87,6 +87,9 @@ List<Resource> filterResources(Catalog catalog,{
   final tracks = catalog.tracks.where((node)=>levelId==null||node.levelId==levelId).map((node)=>node.id).toSet();
   final subjects = catalog.subjects.where((node)=>(trackId==null||node.trackId==trackId)&&tracks.contains(node.trackId)).map((node)=>node.id).toSet();
   final words = normalizeSearch(query).split(RegExp(r'\s+')).where((word)=>word.isNotEmpty).toList();
+  final subjectsById = {for(final node in catalog.subjects) node.id:node};
+  final tracksById = {for(final node in catalog.tracks) node.id:node};
+  final levelsById = {for(final node in catalog.levels) node.id:node};
   final result = catalog.resources.where((resource){
     if (allowedIds!=null&&!allowedIds.contains(resource.id)) return false;
     if (subjectId!=null&&resource.subjectId!=subjectId) return false;
@@ -94,7 +97,13 @@ List<Resource> filterResources(Catalog catalog,{
     if (year!=null&&resource.examYear!=year) return false;
     if (section=='practice'&&!const {'exercise','summary'}.contains(resource.kind)) return false;
     if (section!='all'&&section!='practice'&&resource.kind!=section) return false;
-    final haystack = normalizeSearch('${resource.titleAr} ${resource.titleFr} ${resource.examYear??''}');
+    final subjectNode=subjectsById[resource.subjectId];
+    final trackNode=tracksById[subjectNode?.trackId];
+    final levelNode=levelsById[trackNode?.levelId];
+    final haystack = normalizeSearch('${resource.titleAr} ${resource.titleFr} ${resource.examYear??''} '
+      '${subjectNode?.ar??''} ${subjectNode?.fr??''} '
+      '${trackNode?.ar??''} ${trackNode?.fr??''} '
+      '${levelNode?.ar??''} ${levelNode?.fr??''}');
     return words.every(haystack.contains);
   }).toList();
   result.sort((a,b){
