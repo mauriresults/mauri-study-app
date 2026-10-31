@@ -1,0 +1,79 @@
+name: Build compact Android release previews
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/compact-android.yml"
+      - "app/**"
+      - "scripts/**"
+jobs:
+  compact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+          cache: true
+      - name: Generate Android project
+        run: |
+          python scripts/generate_platforms.py
+          python scripts/configure_android.py
+      - name: Analyze and test Flutter
+        run: |
+          cd app
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Build compact ARM APKs (release mode, preview signing)
+        run: |
+          cd app
+          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --tree-shake-icons --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
+      - name: Verify artifacts, signatures and checksums
+        run: |
+          set -euo pipefail
+          mkdir -p distribution
+          for variant in armeabi-v7a arm64-v8a; do
+            src="app/build/app/outputs/flutter-apk/app-${variant}-release.apk"
+            test -s "$src"
+            cp "$src" "distribution/Mauri-student-0.2.0-${variant}-compact-preview.apk"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          files=list(Path('distribution').glob('*.apk'))
+          assert len(files)==2
+          for path in files:
+            with zipfile.ZipFile(path) as apk:
+              assert apk.testzip() is None
+              assert 'AndroidManifest.xml' in apk.namelist()
+              assert any(n.startswith('lib/') and n.endswith('/libflutter.so') for n in apk.namelist())
+            print(f'{path.name}: {path.stat().st_size:,} bytes')
+          PY
+          ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)"
+          test -x "$SIGNER"
+          for apk in distribution/*.apk; do "$SIGNER" verify --verbose "$apk"; done
+          cd distribution
+          sha256sum *.apk > SHA256SUMS
+      - name: Archive installable compact preview APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mauri-study-compact-apks
+          path: distribution/*
+          if-no-files-found: error
+      - name: Build AAB for Play preparation (NOT Play-ready without private release key)
+        run: |
+          cd app
+          flutter build appbundle --release --tree-shake-icons --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
+      - name: Archive AAB preview separately
+        uses: actions/upload-artifact@v4
+        with:
+          name: mauri-study-aab-preview-not-play-signed
+          path: app/build/app/outputs/bundle/release/*.aab
+          if-no-files-found: error
