@@ -168,16 +168,10 @@ class _FileReaderScreenState extends State<FileReaderScreen> {
   }
 
   @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final params = PdfViewerParams(
       maxImageBytesCachedOnMemory: 24 * 1024 * 1024,
-      onViewerReady: (_, _) {
+      onViewerReady: (document, viewerController) {
         if (mounted) setState(() => loading = false);
       },
       onDocumentLoadFinished: (_, succeeded) {
