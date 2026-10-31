@@ -54,18 +54,19 @@ async function handle(request,env) {
     try {
       if (url.pathname === '/v1/health') return cors(send({status:'ok',service:'mauri-study-app-api',version:1}));
       if (url.pathname === '/v1/catalog') {
+        const taxonomyOnly = url.searchParams.get('taxonomy_only') === '1';
         const [a,b,c,d] = await Promise.all([
           env.DB.prepare('SELECT * FROM levels ORDER BY sort_order,id').all(),
           env.DB.prepare('SELECT * FROM tracks ORDER BY sort_order,id').all(),
           env.DB.prepare('SELECT * FROM subjects ORDER BY sort_order,id').all(),
-          env.DB.prepare(`${itemQuery} ORDER BY id LIMIT 5000`).all()
+          taxonomyOnly ? Promise.resolve({results:[]}) : env.DB.prepare(`${itemQuery} ORDER BY id LIMIT 5000`).all()
         ]);
         const items = d.results.map(itemJson);
         return cors(send({version:1,levels:a.results,tracks:b.results,subjects:c.results,resources:items,
           truncated:items.length===5000},200,{'cache-control':'public, max-age=300, stale-while-revalidate=600'}));
       }
       if (url.pathname === '/v1/resources') {
-        const limit = Math.min(100,Math.max(1,Number.parseInt(url.searchParams.get('limit') || '30',10) || 30));
+        const limit = Math.min(500,Math.max(1,Number.parseInt(url.searchParams.get('limit') || '30',10) || 30));
         const afterText = url.searchParams.get('after') || '0';
         const after = Number(afterText);
         if (!/^\d+$/.test(afterText) || !Number.isSafeInteger(after)) return cors(error('Invalid cursor',400));
