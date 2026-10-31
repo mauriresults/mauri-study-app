@@ -154,3 +154,26 @@ test('invalid pagination cursors are rejected', async () => {
     assert.equal(res.status,400);
   }
 });
+
+
+test('taxonomy-only catalog does not issue a redundant resources query', async () => {
+  const queries = [];
+  const customDb = { prepare(sql) {
+    queries.push(sql);
+    return { async all() { return {results: []}; } };
+  }};
+  const res = await worker.fetch(request('/v1/catalog?taxonomy_only=1'), {DB:customDb});
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.deepEqual(body.resources, []);
+  assert.equal(queries.length, 3);
+  assert.ok(queries.every(q => !q.includes('FROM resources')));
+});
+
+test('resource pagination supports 500 items per call', async () => {
+  let limit;
+  const customDb={prepare() {return {bind(...args) {limit=args.at(-1);return this;},async all(){return {results:[]};}};}};
+  const res=await worker.fetch(request('/v1/resources?limit=500'),{DB:customDb});
+  assert.equal(res.status,200);
+  assert.equal(limit,500);
+});

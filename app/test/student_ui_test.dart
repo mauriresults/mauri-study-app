@@ -93,4 +93,18 @@ void main(){
     expect(Theme.of(tester.element(find.byType(Scaffold).first)).brightness,Brightness.dark);
     expect(tester.takeException(),isNull);
   });
+  testWidgets('library has visible year, track and subject navigation', (tester) async {
+    await launch(tester,PreviewStore());
+    await tester.tap(find.byKey(const ValueKey('nav-library')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('level-bac')),findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('level-bac')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('track-d')),findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('track-d')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('subject-math')),findsOneWidget);
+    expect(tester.takeException(),isNull);
+  });
+
 }

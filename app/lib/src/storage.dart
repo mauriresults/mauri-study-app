@@ -96,16 +96,16 @@ class AppStorage {
   /// Refresh taxonomy and read all published files using bounded pagination.
   /// Large libraries must not be loaded by the API in one unbounded response.
   Future<Catalog> sync() async {
-    final response = await http.get(Uri.parse('$api/v1/catalog'),headers:clientHeaders).timeout(const Duration(seconds: 25));
+    final response = await http.get(Uri.parse('$api/v1/catalog?taxonomy_only=1'),headers:clientHeaders).timeout(const Duration(seconds: 25));
     if (response.statusCode != 200) throw Exception('API HTTP ${response.statusCode}');
     final map = Map<String,dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
 
     final all = <dynamic>[];
     var cursor = 0;
-    // At most 100,000 files per sync; extend with background incremental sync later.
+    // At most 1000 pages per sync; older API versions return at most 100 items per page.
     for (var page = 0; page < 1000; page++) {
       final uri = Uri.parse('$api/v1/resources').replace(queryParameters: {
-        'limit': '100', 'after': cursor.toString(),
+        'limit': '500', 'after': cursor.toString(),
       });
       final r = await http.get(uri,headers:clientHeaders).timeout(const Duration(seconds: 25));
       if (r.statusCode != 200) throw Exception('Catalog page HTTP ${r.statusCode}');
@@ -116,7 +116,8 @@ class AppStorage {
       final next = (chunk['next_after'] as num?)?.toInt();
       if (next == null || next <= cursor) throw Exception('Invalid catalog pagination');
       cursor = next;
-      if (items.length < 100) break;
+      // Keep paginating until the API returns an empty page: older API versions
+      // may cap requested page sizes at 100, even when we request 500.
       if (page == 999) throw Exception('Catalog exceeds current synchronization limit');
     }
     map['resources'] = all;

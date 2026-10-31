@@ -307,12 +307,42 @@ class _StudyHomeState extends State<StudyHome> {
 
   List<Resource> currentResources({Set<int>? allowed}) => catalog==null?[]:filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,section:section,year:year,query:query,allowedIds:allowed);
 
+  // Year → track → subject are shown in the library, not hidden in filters.
+  // Only paths with published content appear until the migration completes.
+  Widget hierarchyPicker(Catalog data) {
+    final publishedSubjects=data.resources.map((resource)=>resource.subjectId).toSet();
+    final availableSubjects=data.subjects.where((node)=>publishedSubjects.contains(node.id)).toList();
+    final availableTracks=availableSubjects.map((node)=>node.trackId).whereType<String>().toSet();
+    final tracks=data.tracks.where((node)=>node.levelId==level&&availableTracks.contains(node.id)).toList();
+    final subjects=availableSubjects.where((node)=>node.trackId==track).toList();
+    final levels=data.levels.where((node)=>data.tracks.any((branch)=>branch.levelId==node.id&&availableTracks.contains(branch.id))).toList();
+    Widget chips(List<Node> nodes,String? selected,void Function(String) onTap,String prefix) =>
+      Wrap(spacing:8,runSpacing:6,children:[for(final node in nodes)
+        ChoiceChip(key:ValueKey('$prefix-${node.id}'),label:Text(node.display(french)),
+          selected:selected==node.id,showCheckmark:false,onSelected:(_)=>onTap(node.id))]);
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(t('1. اختر السنة الدراسية','1. Choisissez votre niveau'),style:Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height:9),
+      chips(levels,level,(id)=>setState((){level=level==id?null:id;track=null;subject=null;year=null;}),'level'),
+      if(level!=null&&tracks.isNotEmpty)...[
+        const SizedBox(height:13),Text(t('2. اختر الشعبة','2. Choisissez votre série'),style:Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height:9),chips(tracks,track,(id)=>setState((){track=track==id?null:id;subject=null;year=null;}),'track'),
+      ],
+      if(track!=null&&subjects.isNotEmpty)...[
+        const SizedBox(height:13),Text(t('3. اختر المادة','3. Choisissez la matière'),style:Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height:9),chips(subjects,subject,(id)=>setState(()=>subject=subject==id?null:id),'subject'),
+      ],
+      const SizedBox(height:15),
+    ]);
+  }
+
   Widget libraryPage() {
     final resources=currentResources();
     final categories=[('all',t('الكل','Tout')),('lesson',t('دروس','Cours')),('exam',t('امتحانات','Examens')),('practice',t('تمارين وملخصات','Exercices et résumés')),('book',t('مراجع','Livres'))];
     return RefreshIndicator(onRefresh:refresh,child:CustomScrollView(key:const PageStorageKey('library'),physics:const AlwaysScrollableScrollPhysics(),slivers:[
       SliverPadding(padding:const EdgeInsets.fromLTRB(20,20,20,0),sliver:SliverToBoxAdapter(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(t('اكتشف. احفظ. تعلّم.','Explorez. Enregistrez. Apprenez.'),style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:16),searchField(),const SizedBox(height:14),
+        if(catalog!=null&&catalog!.resources.isNotEmpty)hierarchyPicker(catalog!),
+        searchField(),const SizedBox(height:14),
         SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:categories.map((category)=>Padding(padding:const EdgeInsetsDirectional.only(end:8),child:ChoiceChip(
           label:Text(category.$2),selected:section==category.$1,onSelected:(_)=>setState(()=>section=category.$1)))).toList())),
         const SizedBox(height:8),Row(children:[
