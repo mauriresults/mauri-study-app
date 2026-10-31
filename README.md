@@ -4,9 +4,9 @@
 
 ## تحميل التطبيق
 
-- **[تنزيل النسخة الخفيفة ARM64 (18.7 MB)](https://github.com/mauriresults/mauri-study-app/releases/download/preview-compact-499494a8/Mauri-student-0.2.0-arm64-v8a-compact-preview.apk)** — للهواتف الحديثة (الموصى بها).
+- **[تنزيل النسخة الخفيفة ARM64 (18.7 MB)](https://github.com/mauriresults/mauri-study-app/releases/download/preview-compact-04b44a44/Mauri-student-0.2.0-arm64-v8a-compact-preview.apk)** — للهواتف الحديثة (الموصى بها).
 - **[تنزيل النسخة الخفيفة ARM32 (16.2 MB)](https://github.com/mauriresults/mauri-study-app/releases/download/preview-compact-499494a8/Mauri-student-0.2.0-armeabi-v7a-compact-preview.apk)** — للهواتف القديمة 32-bit.
-- **[صفحة الإصدار الخفيف وبصمات SHA-256](https://github.com/mauriresults/mauri-study-app/releases/tag/preview-compact-499494a8)**. لا تُنزّل النسختين معًا.
+- **[صفحة الإصدار الخفيف وبصمات SHA-256](https://github.com/mauriresults/mauri-study-app/releases/tag/preview-compact-04b44a44)**. لا تُنزّل النسختين معًا.
 - **[بناء Android الخفيف واختباراته](https://github.com/mauriresults/mauri-study-app/actions/workflows/compact-android.yml)**.
 - **[مستند تثبيت مفاتيح Google Play وبناء AAB](docs/GOOGLE_PLAY_SIGNING.md)**.
 - **[تقرير نقل المراجع وحجم التطبيق](docs/LIBRARY_AND_SIZE_2026-10-31.md)**.
@@ -20,7 +20,10 @@
 - Cloudflare Worker: `mauri-study-app-api`
 - Cloudflare D1: `mauri-study-app-db`
 - Cloudflare R2: `mauri-study-files` (خاص وغير مكشوف مباشرة)
-- **19 ملف PDF منشورًا ومفهرسًا** بحجم إجمالي **3,872,734 بايت** بتاريخ 31 أكتوبر 2026، موزعة بين البكالوريا والخامسة الثانوية 5C/5D.
+- **50 ملف PDF حقيقيًا منشورًا ومفهرسًا** بحجم **27,868,674 بايت (27.87 MB)** بتاريخ 31 أكتوبر 2026؛ 50 بصمة SHA-256 مختلفة، موزعة بين الخامسة الثانوية، السادسة، والبكالوريا. التصنيفات تشمل الكتب والدروس والتمارين والامتحانات والملخصات.
+- **109 ملفات معلّقة** (558,060,329 بايت، نحو 558 MB) مكتشفة في قائمتي المصادر؛ لا تُعرض في التطبيق قبل نجاح نقل الملف نفسه إلى R2 والتحقق من سلامته. الفهرسة المصدرية لا تعني النشر.
+- تحديث الواجهة: تصفح مباشر السنة → الشعبة → المادة، بحث يشمل تسميات المواد باللغتين العربية والفرنسية، وزر تنزيل مباشر. المزامنة تستخدم جلب الفهرس دون تكرار تحميل محتوى قائمة الملفات.
+- أحدث نسخة Android المجتازة للاختبارات مصدرها commit `04b44a44` (نسخة معاينة تجريبية، وليست منشورة في المتجر).
 - الهدف الذي لم يكتمل بعد: ترحيل المكتبة التعليمية الكبيرة متعددة المجلدات. يتطلب ذلك مصدرًا قابلًا للتنزيل الموثوق، حقوق إعادة النشر، ونقلًا متدرجًا بتكاليف مدروسة.
 
 ## التحقق
