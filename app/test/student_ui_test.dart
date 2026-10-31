@@ -111,6 +111,8 @@ void main(){
     await launch(tester,PreviewStore());
     await tester.tap(find.byKey(const ValueKey('nav-library')));
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip,'دروس'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('درس الدوال'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('detail-preview')),findsOneWidget);
