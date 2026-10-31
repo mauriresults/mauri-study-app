@@ -1,0 +1,102 @@
+name: Prepare Google Play signed AAB
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  play-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+          cache: true
+      - name: Generate Android project
+        run: |
+          python scripts/generate_platforms.py
+          python scripts/configure_android.py
+      - name: Verify private Play upload-signing credentials exist
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.MAURI_UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.MAURI_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.MAURI_UPLOAD_KEY_PASSWORD }}
+          UPLOAD_STORE_PASSWORD: ${{ secrets.MAURI_UPLOAD_STORE_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import os,sys
+          required=['UPLOAD_KEYSTORE','UPLOAD_KEY_ALIAS','UPLOAD_KEY_PASSWORD','UPLOAD_STORE_PASSWORD']
+          missing=[name for name in required if not os.environ.get(name)]
+          if missing:
+              print('Missing private signing secrets: '+', '.join(missing),file=sys.stderr)
+              sys.exit(1)
+          print('All four upload-signing secrets are configured (values hidden)')
+          PY
+      - name: Configure Play signing ONLY in ephemeral runner
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.MAURI_UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.MAURI_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.MAURI_UPLOAD_KEY_PASSWORD }}
+          UPLOAD_STORE_PASSWORD: ${{ secrets.MAURI_UPLOAD_STORE_PASSWORD }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os,base64
+          build=Path('app/android/app/build.gradle.kts')
+          if not build.exists(): raise SystemExit('Expected generated Kotlin Gradle config missing')
+          contents=build.read_text()
+          marker='signingConfig = signingConfigs.getByName("debug")'
+          if contents.count(marker)!=1: raise SystemExit('Unrecognized release signing block: abort to avoid mis-signing')
+          keystore=Path(os.environ['RUNNER_TEMP'])/'mauri-upload-keystore.jks'
+          keystore.write_bytes(base64.b64decode(os.environ['UPLOAD_KEYSTORE'],validate=True))
+          keystore.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'],'a') as output:
+              output.write('MAURI_UPLOAD_KEYSTORE_PATH='+str(keystore)+'\n')
+          block='''    signingConfigs {
+                  create("mauriUpload") {
+                      storeFile = file(System.getenv("MAURI_UPLOAD_KEYSTORE_PATH"))
+                      storePassword = System.getenv("UPLOAD_STORE_PASSWORD")
+                      keyAlias = System.getenv("UPLOAD_KEY_ALIAS")
+                      keyPassword = System.getenv("UPLOAD_KEY_PASSWORD")
+                  }
+              }
+          '''
+          if 'android {' not in contents: raise SystemExit('Expected android block missing')
+          contents=contents.replace('android {','android {\n'+block,1)
+          contents=contents.replace(marker,'signingConfig = signingConfigs.getByName("mauriUpload")',1)
+          build.write_text(contents)
+          print('Ephemeral release upload-signing configuration enabled')
+          PY
+      - name: Verify Flutter project
+        run: |
+          cd app
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Build production-upload signed Android App Bundle
+        env:
+          UPLOAD_KEY_ALIAS: ${{ secrets.MAURI_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.MAURI_UPLOAD_KEY_PASSWORD }}
+          UPLOAD_STORE_PASSWORD: ${{ secrets.MAURI_UPLOAD_STORE_PASSWORD }}
+        run: |
+          cd app
+          flutter build appbundle --release --tree-shake-icons --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
+      - name: Verify signed AAB
+        run: |
+          set -euo pipefail
+          AAB="$(find app/build/app/outputs/bundle/release -name '*.aab' -print -quit)"
+          test -n "$AAB"
+          jarsigner -verify "$AAB"
+          sha256sum "$AAB" > "$AAB.sha256"
+          echo "AAB ready for Play Console upload; size: $(stat -c %s "$AAB") bytes"
+      - name: Save signed AAB privately as a GitHub Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mauri-student-play-signed-aab
+          path: |
+            app/build/app/outputs/bundle/release/*.aab
+            app/build/app/outputs/bundle/release/*.sha256
+          if-no-files-found: error
+          retention-days: 7
