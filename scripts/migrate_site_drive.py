@@ -19,7 +19,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import requests
 
 DB_ID = "124dee36-99ce-4365-8cf9-af0b01b2d1d7"
 BUCKET = "mauri-study-files"
@@ -115,6 +114,7 @@ def main() -> None:
         parser.error("Missing credentials: " + ", ".join(missing))
 
     import boto3
+    import requests
     account = os.environ["CF_ACCOUNT_ID"]
     base = (f"https://api.cloudflare.com/client/v4/accounts/{account}"
             f"/d1/database/{DB_ID}/query")
