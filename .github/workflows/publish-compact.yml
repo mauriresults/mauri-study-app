@@ -65,3 +65,4 @@ jobs:
               --target "$TRUSTED_SHA" --prerelease \
               --title "Mauri student 0.2.0 compact Android preview" \
               --notes "Smaller release-mode Android test APKs. Choose arm64-v8a for modern Android phones or armeabi-v7a for older 32-bit phones. These are preview-signed builds, NOT Play Store releases. AAB must be signed with a private production key before Google Play submission; PDFs are downloaded separately. Source: $TRUSTED_SHA"
+          fi
