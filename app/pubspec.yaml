@@ -17,7 +17,7 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   crypto: ^3.0.6
-  pdfx: ^2.11.0
+  pdfrx: ^2.6.5
 
 dev_dependencies:
   flutter_test:

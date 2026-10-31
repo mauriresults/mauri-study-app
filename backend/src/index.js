@@ -100,9 +100,10 @@ async function handle(request,env) {
         const rangeInput = request.method === 'GET' && (!ifRange || ifRange === etag) ? request.headers.get('Range') : null;
         const range = rangeInput ? parseRange(rangeInput,total) : null;
         if (rangeInput && !range) return cors(new Response(null,{status:416,headers:{'Content-Range':`bytes */${total}`}}));
+        const downloadMode = url.searchParams.get('download') === '1';
         const h = new Headers({
           'Content-Type':'application/pdf',
-          'Content-Disposition':`attachment; filename="resource-${id}.pdf"`,
+          'Content-Disposition':`${downloadMode ? 'attachment' : 'inline'}; filename="resource-${id}.pdf"`,
           'Content-Length':String(range ? range.end-range.start+1 : total),
           'Accept-Ranges':'bytes',
           'Cache-Control':'public, max-age=3600',

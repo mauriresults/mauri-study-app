@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:pdfx/pdfx.dart';
+import 'file_reader.dart';
 import 'models.dart';
 import 'storage.dart';
 import 'ui.dart';
@@ -139,15 +138,21 @@ class _StudyHomeState extends State<StudyHome> {
     } finally {if(mounted)setState(()=>downloading=null);}
   }
 
+  String resourceUrl(Resource resource) => '$apiBase/v1/files/${resource.id}';
+
   Future<void> openResource(Resource resource) async {
-    var path=local[resource.id];
-    if(path==null||!await File(path).exists()) {
-      if(!mounted)return;
-      if(transferring){notify(t('انتظر اكتمال التنزيل الحالي','Attendez la fin du téléchargement en cours'));return;}
-      path=await download(resource);
-    }
-    if(path==null||!mounted)return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>PdfScreen(path:path!,title:resource.display(french))));
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_) => FileDetailsScreen(
+      resource:resource,apiUrl:resourceUrl(resource),french:french,
+      localPath:local[resource.id],initiallyFavorite:favorites.contains(resource.id),
+      onFavorite:()=>toggleFavorite(resource),onDownload:()=>download(resource),
+    )));
+  }
+
+  Future<void> previewResource(Resource resource) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_) => FileReaderScreen(
+      title:resource.display(french),apiUrl:resourceUrl(resource),
+      localPath:local[resource.id],french:french,onDownload:()=>download(resource),
+    )));
   }
 
   Future<void> downloadMany(List<Resource> resources) async {
@@ -213,7 +218,8 @@ class _StudyHomeState extends State<StudyHome> {
     final subjects={for(final node in catalog?.subjects??<Node>[])node.id:node};
     return ResourceTile(resource:resource,subject:subjects[resource.subjectId]?.display(french)??'',french:french,
       saved:local.containsKey(resource.id),favorite:favorites.contains(resource.id),progress:downloading==resource.id?progress:null,
-      onOpen:()=>openResource(resource),onFavorite:()=>toggleFavorite(resource),
+      onOpen:()=>openResource(resource),onPreview:()=>previewResource(resource),
+      onFavorite:()=>toggleFavorite(resource),
       onDownload:transferring?null:()=>download(resource),onDelete:transferring?null:()=>removeResource(resource));
   }
 
@@ -277,15 +283,15 @@ class _StudyHomeState extends State<StudyHome> {
       ]),
       const SizedBox(height:18),InkWell(borderRadius:BorderRadius.circular(18),onTap:()=>browse(),child:InputDecorator(decoration:InputDecoration(prefixIcon:const Icon(Icons.search_rounded)),
         child:Text(t('ماذا تريد أن تتعلم اليوم؟','Que voulez-vous apprendre aujourd’hui ?'),style:TextStyle(color:Theme.of(context).colorScheme.onSurfaceVariant)))),
-      if(data!=null&&data.levels.isNotEmpty)...[
+      if(data!=null&&data.resources.isNotEmpty)...[
         SectionHeading(title:t('ابدأ من مستواك','Choisissez votre niveau')),
-        Wrap(spacing:10,runSpacing:10,children:data.levels.map((node)=>ActionChip(avatar:const Icon(Icons.school_outlined,size:18),label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.id))).toList()),
+        Wrap(spacing:10,runSpacing:10,children:data.levels.where((node)=>data.tracks.any((track)=>track.levelId==node.id&&data.subjects.any((subject)=>subject.trackId==track.id&&data.resources.any((file)=>file.subjectId==subject.id)))).map((node)=>ActionChip(avatar:const Icon(Icons.school_outlined,size:18),label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.id))).toList()),
       ],
       SectionHeading(title:t('كل ما تحتاجه للدراسة','Tout pour vos études')),
       LayoutBuilder(builder:(context,constraints){
         final width=(constraints.maxWidth-12)/2;
         final choices=[('lesson',Icons.auto_stories_outlined,t('الدروس','Cours')),('exam',Icons.assignment_outlined,t('الامتحانات','Examens')),('practice',Icons.edit_note_rounded,t('التمارين والملخصات','Exercices et résumés')),('book',Icons.local_library_outlined,t('الكتب والمراجع','Livres et références'))];
-        return Wrap(spacing:12,runSpacing:12,children:choices.map((choice){
+        return Wrap(spacing:12,runSpacing:12,children:choices.where((choice)=>data!=null&&data.resources.any((file)=>choice.$1=='practice'?const {'exercise','summary'}.contains(file.kind):file.kind==choice.$1)).map((choice){
           return SizedBox(width:width,child:Card(child:InkWell(
             borderRadius:BorderRadius.circular(22),onTap:()=>browse(category:choice.$1),
             child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -295,9 +301,9 @@ class _StudyHomeState extends State<StudyHome> {
           )));
         }).toList());
       }),
-      if(data!=null&&data.tracks.isNotEmpty)...[
+      if(data!=null&&data.resources.isNotEmpty)...[
         SectionHeading(title:t('شعبتك، طريقك إلى النجاح','Votre série, votre parcours')),
-        Wrap(spacing:8,runSpacing:8,children:data.tracks.map((node)=>ActionChip(label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.levelId,selectedTrack:node.id))).toList()),
+        Wrap(spacing:8,runSpacing:8,children:data.tracks.where((node)=>data.subjects.any((sub)=>sub.trackId==node.id&&data.resources.any((file)=>file.subjectId==sub.id))).map((node)=>ActionChip(label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.levelId,selectedTrack:node.id))).toList()),
       ],
       SectionHeading(title:t('أحدث الإضافات','Derniers ajouts'),actionLabel:t('عرض الكل','Tout voir'),onAction:()=>browse()),
       if(recent.isEmpty)EmptyPanel(icon:Icons.menu_book_outlined,title:t('مكتبتك تنتظرك','Votre bibliothèque vous attend'),message:t('حدّث الفهرس لعرض الملفات المتاحة.','Actualisez le catalogue pour découvrir les documents disponibles.'),actionLabel:t('تحديث المكتبة','Actualiser'),onAction:busy?null:refresh)
@@ -339,11 +345,13 @@ class _StudyHomeState extends State<StudyHome> {
   Widget libraryPage() {
     final resources=currentResources();
     final categories=[('all',t('الكل','Tout')),('lesson',t('دروس','Cours')),('exam',t('امتحانات','Examens')),('practice',t('تمارين وملخصات','Exercices et résumés')),('book',t('مراجع','Livres'))];
+    final visibleKinds=catalog==null?<Resource>[]:filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,query:query);
+    final visibleCategories=categories.where((cat)=>cat.$1=='all'||visibleKinds.any((item)=>cat.$1=='practice'?const {'exercise','summary'}.contains(item.kind):item.kind==cat.$1)).toList();
     return RefreshIndicator(onRefresh:refresh,child:CustomScrollView(key:const PageStorageKey('library'),physics:const AlwaysScrollableScrollPhysics(),slivers:[
       SliverPadding(padding:const EdgeInsets.fromLTRB(20,20,20,0),sliver:SliverToBoxAdapter(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         if(catalog!=null&&catalog!.resources.isNotEmpty)hierarchyPicker(catalog!),
         searchField(),const SizedBox(height:14),
-        SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:categories.map((category)=>Padding(padding:const EdgeInsetsDirectional.only(end:8),child:ChoiceChip(
+        SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:visibleCategories.map((category)=>Padding(padding:const EdgeInsetsDirectional.only(end:8),child:ChoiceChip(
           label:Text(category.$2),selected:section==category.$1,onSelected:(_)=>setState(()=>section=category.$1)))).toList())),
         const SizedBox(height:8),Row(children:[
           Expanded(child:Text(t('${resources.length} ملفًا متاحًا','${resources.length} documents'),style:Theme.of(context).textTheme.labelLarge)),
@@ -427,18 +435,3 @@ class _StudyHomeState extends State<StudyHome> {
   }
 }
 
-class PdfScreen extends StatefulWidget {
-  final String path,title;
-  const PdfScreen({required this.path,required this.title,super.key});
-  @override
-  State<PdfScreen> createState()=>_PdfScreenState();
-}
-class _PdfScreenState extends State<PdfScreen> {
-  late final PdfControllerPinch controller;
-  @override
-  void initState(){super.initState();controller=PdfControllerPinch(document:PdfDocument.openFile(widget.path));}
-  @override
-  void dispose(){controller.dispose();super.dispose();}
-  @override
-  Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.title)),body:PdfViewPinch(controller:controller));
-}

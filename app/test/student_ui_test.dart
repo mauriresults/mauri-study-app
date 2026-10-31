@@ -107,4 +107,19 @@ void main(){
     expect(tester.takeException(),isNull);
   });
 
+  testWidgets('opening a document shows preview and download separately', (tester) async {
+    await launch(tester,PreviewStore());
+    await tester.tap(find.byKey(const ValueKey('nav-library')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip,'دروس'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('درس الدوال'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('detail-preview')),findsOneWidget);
+    expect(find.byKey(const ValueKey('detail-download')),findsOneWidget);
+    expect(find.text('مشاهدة الآن'),findsOneWidget);
+    expect(tester.takeException(),isNull);
+  });
+
+
 }
