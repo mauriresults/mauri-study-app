@@ -18,6 +18,17 @@ The previously suggested **50 GB library has NOT been transferred**. Large scale
 
 The source owners' redistribution permissions were reported by the project owner; this report does not claim independent licensing verification.
 
+
+## Private transfer queue for the remaining source files
+
+- The private D1 `migration_queue` table now contains **159 discovered PDF records** from the two Drive folders sampled on 2026-10-31.
+- `imported`: **19 files / 3,872,734 bytes**.
+- `pending`: **140 files / 582,056,269 bytes**.
+- Combined discovered file sizes: **585,929,003 bytes**.
+- Source Drive IDs and filenames stay in private D1; the app's public read-only API exposes only published R2 resources. Do not publish source URLs as user-facing download destinations.
+- The BAC folder fetch was capped at 100 direct children, so this queue is **not exhaustive** for the folder, any nested folders, or the advertised ~50 GB collection.
+- The pending records require validated download access, checksums, rights review and verified uploads before changing status to `imported`.
+
 ## Storage-budget note
 
 As of 2026-10-31, Cloudflare R2 Standard includes 10 GB-month of free storage. Storing 50 GB steadily would exceed the free allowance by about 40 GB; list and write operations are billed separately if free usage is exceeded. Do not silently exceed the free allowance without confirming the project's cost budget.
