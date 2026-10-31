@@ -8,15 +8,17 @@ This is a partial development update to the supplied starter. It is not a comple
 - `python -m unittest discover -s scripts/tests -v`: 8 tests passed. Includes rejection of corrupt readback and missing publication-rights evidence.
 - GitHub Actions run `41211058566` completed successfully for API and importer tests.
 - GitHub Actions Android run `41211058574` installed Flutter 3.47.9 and completed `flutter pub get`. Analysis failed on the generated counter-app test (`MyApp` was not defined) and five lint findings. Native generation now uses an isolated temporary template and copies only native projects, and the lint findings were fixed. A new successful run is still required.
+- Follow-up Android run `41211290108` passed package resolution, analysis and Flutter tests, and built `app-debug.apk`. Its public API smoke check then received HTTP 403, so the old sequential workflow did not publish the APK artifact. Build artifacts and API smoke checks now run independently; API failures remain visible and fail their own job. APK signature verification and native-source artifacts were added for subsequent builds.
 - Cloudflare connected-account reads confirmed the exact independent D1 database `124dee36-99ce-4365-8cf9-af0b01b2d1d7`, R2 bucket `mauri-study-files`, and Worker `mauri-study-app-api` bindings `DB` and `FILES`. No other project was modified.
+- Live D1 reads confirmed 8 published rows, a recorded total of 1,816,924 bytes, and 8 SHA-256 fields of length 64. `PRAGMA foreign_key_check` returned no violations. R2's managed public domain is disabled and there are no custom public domains. These checks do not establish the integrity of the stored PDF bytes.
 
 ## Not verified or delivered
 
-- Flutter SDK and Android SDK remain unavailable in the local editing workspace. Android builds can run through GitHub Actions. The first remote analysis failed as documented above; Flutter tests, APK and AAB builds have not completed successfully yet.
-- No macOS/Xcode environment or Apple signing was available. No iOS build was performed. Native Android/iOS projects are still absent; the existing bootstrap script generates them on a suitably equipped machine.
+- Flutter SDK and Android SDK remain unavailable in the local editing workspace. Package resolution, analysis, Flutter tests and a debug APK build succeeded in GitHub Actions run `41211290108`; AAB builds have not been performed. No APK installation or device tests have been performed.
+- No macOS/Xcode environment or Apple signing was available. No iOS build was performed. Android/iOS native project generation succeeded on the CI runner; native projects are not yet committed to the repository. The workflow now includes an artifact for generated native projects and the resolved dependency lock.
 - New Dart changes require analysis, tests, and device checks. Resume, simultaneous downloads, airplane mode, PDF rendering, localization, and large-list performance have not been verified on a device.
-- No external API HTTP smoke test, storage-private-access test, stress test, or Worker deployment was completed.
-- No new educational files were transferred or published. Historical claims of 8 files / 1,816,924 bytes in the starter have not been independently verified by downloading and hashing those files.
+- The external API HTTP smoke test failed at health with HTTP 403. End-to-end PDF delivery is therefore not verified. No storage-access HTTP test, stress test, or Worker deployment was completed. R2 privacy settings were verified through Cloudflare's management API only.
+- No new educational files were transferred or published. The existing 8 rows / 1,816,924 recorded bytes were confirmed in D1 but have not been independently verified by downloading and hashing those files.
 - The full requested interface, favorites, persisted settings, corrections, production signing, Drive ingestion pipeline, and resumable multipart imports remain incomplete.
 - The owner created the independent public repository `mauriresults/mauri-study-app` and added it to the connected GitHub app installation. Its identity and inclusion in the allowed repositories were verified. The previous missing-repository and installation-access blockers are resolved. No existing application repository was used or modified.
 

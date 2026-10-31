@@ -38,6 +38,13 @@ def main():
         return 0
     except (URLError,HTTPError,AssertionError,ValueError,RuntimeError) as exc:
         print('REMOTE CHECK FAILED:',exc,file=sys.stderr)
+        if isinstance(exc,HTTPError):
+            print('Failed URL:',exc.url,file=sys.stderr)
+            for name in ('server','content-type','cf-ray','location'):
+                if exc.headers.get(name):
+                    print(name+':',exc.headers[name],file=sys.stderr)
+            print('Response preview:',repr(exc.read(2048).decode('utf-8',errors='replace')),file=sys.stderr)
+            exc.close()
         return 1
 
 if __name__=='__main__':sys.exit(main())

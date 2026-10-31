@@ -7,8 +7,22 @@ on:
   pull_request:
     paths: ["app/**", "scripts/**", ".github/workflows/build-android.yml"]
 jobs:
+  api-smoke:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify public API and PDF delivery
+        run: python scripts/verify_remote_api.py --check-download
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -31,12 +45,35 @@ jobs:
       - name: Build debug-signed preview APK
         if: github.event_name != 'pull_request'
         run: cd app && flutter build apk --debug --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
-      - name: Verify remote API and PDF delivery
+      - name: Verify APK signature and record checksum
         if: github.event_name != 'pull_request'
-        run: python scripts/verify_remote_api.py --check-download
+        run: python scripts/verify_apk.py
       - name: Upload debug APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: mauri-study-debug-apk
-          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          path: |
+            app/build/app/outputs/flutter-apk/app-debug.apk
+            app/build/app/outputs/flutter-apk/app-debug.apk.sha256
+          if-no-files-found: error
+      - name: Upload generated native projects and dependency lock
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mauri-study-native-projects
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            app/android
+            app/ios
+            app/.metadata
+            app/pubspec.lock
+            !app/android/.gradle/**
+            !app/android/local.properties
+            !app/android/**/build/**
+            !app/ios/Pods/**
+            !app/ios/.symlinks/**
+            !app/ios/Flutter/ephemeral/**
+            !app/ios/Flutter/Generated.xcconfig
+            !app/ios/Flutter/flutter_export_environment.sh
