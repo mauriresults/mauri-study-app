@@ -9,6 +9,7 @@ import 'models.dart';
 
 /// This application uses its OWN SQLite storage; it does not touch website data.
 class AppStorage {
+  static const clientHeaders = {'User-Agent':'MauriStudy/0.1.0'};
   late final Database db;
   final String api;
   final Map<int, Future<String>> _activeDownloads = {};
@@ -32,7 +33,7 @@ class AppStorage {
   /// Refresh taxonomy and read all published files using bounded pagination.
   /// Large libraries must not be loaded by the API in one unbounded response.
   Future<Catalog> sync() async {
-    final response = await http.get(Uri.parse('$api/v1/catalog')).timeout(const Duration(seconds: 25));
+    final response = await http.get(Uri.parse('$api/v1/catalog'),headers:clientHeaders).timeout(const Duration(seconds: 25));
     if (response.statusCode != 200) throw Exception('API HTTP ${response.statusCode}');
     final map = Map<String,dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
 
@@ -43,7 +44,7 @@ class AppStorage {
       final uri = Uri.parse('$api/v1/resources').replace(queryParameters: {
         'limit': '100', 'after': cursor.toString(),
       });
-      final r = await http.get(uri).timeout(const Duration(seconds: 25));
+      final r = await http.get(uri,headers:clientHeaders).timeout(const Duration(seconds: 25));
       if (r.statusCode != 200) throw Exception('Catalog page HTTP ${r.statusCode}');
       final chunk = Map<String,dynamic>.from(jsonDecode(utf8.decode(r.bodyBytes)) as Map);
       final items = chunk['resources'] as List<dynamic>? ?? const [];
@@ -117,6 +118,7 @@ class AppStorage {
     final client = http.Client();
     try {
       final req = http.Request('GET',Uri.parse('$api/v1/files/${resource.id}'));
+      req.headers.addAll(clientHeaders);
       if (existing > 0) req.headers['Range'] = 'bytes=$existing-';
       final res = await client.send(req).timeout(const Duration(seconds:30));
       if (res.statusCode != 200 && res.statusCode != 206) {

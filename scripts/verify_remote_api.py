@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 
 def get_json(url):
-    with urlopen(Request(url,headers={'Accept':'application/json'}),timeout=20) as r:
+    with urlopen(Request(url,headers={'Accept':'application/json','User-Agent':'MauriStudyVerification/0.1.0'}),timeout=20) as r:
         if r.status!=200:raise RuntimeError(f'{url}: HTTP {r.status}')
         return json.load(r)
 
@@ -31,7 +31,7 @@ def main():
         if args.check_download:
             if not items:raise RuntimeError('Cannot check PDF: no published resources')
             url=base+'/v1/files/'+str(items[0]['id'])
-            with urlopen(Request(url,headers={'Range':'bytes=0-4'}),timeout=30) as r:
+            with urlopen(Request(url,headers={'Range':'bytes=0-4','User-Agent':'MauriStudyVerification/0.1.0'}),timeout=30) as r:
                 sig=r.read(5)
                 if r.status!=206 or sig!=b'%PDF-':raise RuntimeError(f'PDF range is invalid: status={r.status}, signature={sig!r}')
             print('PDF 206 range download is valid')
