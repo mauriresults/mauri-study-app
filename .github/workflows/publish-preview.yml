@@ -1,0 +1,67 @@
+name: Publish direct Android preview download
+on:
+  workflow_run:
+    workflows: ["Build Android preview"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful main-branch Android build run ID
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify build origin and download tested APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAURI_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          python - <<'PY'
+          import os,re
+          assert re.fullmatch(r'\d+',os.environ['MAURI_RUN_ID']), 'Invalid run ID'
+          PY
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$MAURI_RUN_ID" > build-run.json
+          python - <<'PY'
+          import json,os,re
+          run=json.load(open('build-run.json'))
+          assert run['conclusion']=='success'
+          assert run['head_branch']=='main'
+          assert run['head_repository']['full_name']==os.environ['GITHUB_REPOSITORY']
+          assert run['event'] in ('push','workflow_dispatch')
+          assert run['path']=='.github/workflows/build-android.yml'
+          assert re.fullmatch(r'[a-f0-9]{40}',run['head_sha'])
+          with open(os.environ['GITHUB_ENV'],'a') as output:
+              output.write('MAURI_BUILD_SHA='+run['head_sha']+'\n')
+          PY
+          gh run download "$MAURI_RUN_ID" --repo "$GITHUB_REPOSITORY" --name mauri-study-debug-apk --dir downloaded
+          cd downloaded
+          sha256sum --check app-debug.apk.sha256
+      - name: Publish debug prerelease with direct APK asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MAURI_PREVIEW_TAG="preview-${MAURI_BUILD_SHA:0:8}"
+          mkdir distribution
+          cp downloaded/app-debug.apk distribution/Mauri-student-0.2.0-debug.apk
+          cd distribution
+          sha256sum Mauri-student-0.2.0-debug.apk > Mauri-student-0.2.0-debug.apk.sha256
+          cd ..
+          if gh release view "$MAURI_PREVIEW_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$MAURI_PREVIEW_TAG" distribution/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$MAURI_PREVIEW_TAG" distribution/* --repo "$GITHUB_REPOSITORY" --target "$MAURI_BUILD_SHA" --prerelease --title "Mauri student 0.2.0 preview" --notes-file docs/PREVIEW_NOTES.md
+          fi
