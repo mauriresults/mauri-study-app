@@ -1,0 +1,67 @@
+name: Publish compact ARM Android previews
+on:
+  workflow_run:
+    workflows: ["Build compact Android release previews"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: ID of a successful compact Android build on main
+        type: string
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify trusted main branch build and download previews
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,re
+          assert re.fullmatch(r'[0-9]+',os.environ['BUILD_RUN_ID'])
+          PY
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID" > build.json
+          python - <<'PY'
+          import json,os
+          run=json.load(open('build.json'))
+          assert run['conclusion']=='success'
+          assert run['head_branch']=='main'
+          assert run['head_repository']['full_name']==os.environ['GITHUB_REPOSITORY']
+          assert run['event'] in ('push','workflow_dispatch')
+          assert run['path']=='.github/workflows/compact-android.yml'
+          with open(os.environ['GITHUB_ENV'],'a') as out:
+            out.write('TRUSTED_SHA='+run['head_sha']+'\n')
+          PY
+          mkdir -p distribution
+          gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name mauri-study-compact-apks --dir distribution
+          cd distribution
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -name '*.apk' | wc -l)" -eq 2
+      - name: Publish compact APKs for direct public download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="preview-compact-${TRUSTED_SHA:0:8}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" distribution/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" distribution/* --repo "$GITHUB_REPOSITORY" \
+              --target "$TRUSTED_SHA" --prerelease \
+              --title "Mauri student 0.2.0 compact Android preview" \
+              --notes "Smaller release-mode Android test APKs. Choose arm64-v8a for modern Android phones or armeabi-v7a for older 32-bit phones. These are preview-signed builds, NOT Play Store releases. AAB must be signed with a private production key before Google Play submission; PDFs are downloaded separately. Source: $TRUSTED_SHA"
