@@ -1,53 +1,48 @@
-# دروسي موريتانيا — Mauri Study
+# Mauri student — دروسي موريتانيا
 
-تطبيق Flutter تعليمي مستقل عن MauriResults، مع API على Cloudflare Workers وفهرس D1 وملفات PDF في R2 الخاصة. هذه **نسخة تطوير جزئية قابلة للبناء**؛ لم يكتمل نطاق المنتج المطلوب، ولم تُختبر على هاتف فعلي.
+تطبيق Flutter مستقل عن موقع MauriResults، مخصص للدروس والتمارين والامتحانات الموريتانية مع القراءة والتنزيل دون إنترنت. يدعم العربية والفرنسية، البحث والفلاتر، المفضلة، وتنزيل PDF إلى ذاكرة الهاتف.
 
-## الملفات والروابط المتحقق منها
+## تحميل التطبيق
 
-- [المستودع المستقل](https://github.com/mauriresults/mauri-study-app)
-- [APK التجريبي داخل ZIP](https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313/artifacts/13047215595): فك الضغط وثبّت `app-debug.apk` على جهاز اختبار. يتطلب تنزيل GitHub Artifacts تسجيل الدخول؛ تنتهي صلاحية الملف في 29 يناير 2027، ويمكن إعادة بنائه عبر Actions.
-- [مشروعا Android وiOS المولدان وقفل الاعتماديات](https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313/artifacts/13046389089): ملفات أصلية مولدة، وليست إصدار iOS مبنيًا. لم تُضف بعد إلى المستودع.
-- [API: health](https://mauri-study-app-api.mauri-study-app.workers.dev/v1/health)
-- [تقرير الاختبارات والنواقص](docs/VERIFICATION.md)
-- [ملخص تدقيق API والملفات](docs/API_AUDIT_2026-10-31.json)
+- **[تنزيل أحدث إصدارات Android من GitHub Releases](https://github.com/mauriresults/mauri-study-app/releases)** — ابحث عن **compact ARM64** للغالبية العظمى من الهواتف الحديثة، أو **ARM32** للأجهزة الأقدم. لا تُنزّل النسختين معًا.
+- **[بناء Android الخفيف واختباراته](https://github.com/mauriresults/mauri-study-app/actions/workflows/compact-android.yml)**.
+- **[مستند تثبيت مفاتيح Google Play وبناء AAB](docs/GOOGLE_PLAY_SIGNING.md)**.
+- **[تقرير نقل المراجع وحجم التطبيق](docs/LIBRARY_AND_SIZE_2026-10-31.md)**.
 
-APK موقع بشهادة **Debug**، وليس إصدار متجر. حجمه 153,979,716 بايت، وحجم ZIP نحو 73 MB؛ يضم محرك Flutter التجريبي ومعماريات Android متعددة، ولا يضم المكتبة التعليمية. لم يُجهز إصدار متجر صغير ومحسن بعد.
+**حجم نسخ Android الخفيفة المتحقق منه:** 18.7 MB لـARM64 و16.2 MB لـARM32، مقارنة بحوالي 161 MB لنسخة Debug القديمة. هناك AAB تجريبي بحجم 52.5 MB، لكنه **ليس موقّعًا بمفتاح إنتاج للمتجر**.
 
-SHA-256 لملف APK: `506c25459cad6ad8009024f50f41239d0287df260ec354da20f78438a2ec8d02`.
+لا يحتوي APK على مكتبة PDF؛ الدروس تُحمّل حسب طلب الطالب فقط، فلا يكبر ملف التطبيق عند إضافة المراجع.
 
-## نتائج فعلية — 31 أكتوبر 2026
+## المكتبة السحابية
 
-- نجح `flutter pub get` و`flutter analyze` واختبارا Flutter وبناء APK والتحقق من توقيعه بواسطة `apksigner` في [عملية Android الناجحة](https://github.com/mauriresults/mauri-study-app/actions/runs/41211960313).
-- نجح 13 اختبار API و8 اختبارات لأداة الاستيراد محليًا وعلى GitHub.
-- نُشرت إصلاحات Worker المستقل، ونجح [الفحص الخارجي الكامل](https://github.com/mauriresults/mauri-study-app/actions/runs/41212161760) للمسارات الخمسة المطلوبة، والتصفح على دفعات، وHEAD، والملفات المفقودة، والتنزيل الكامل والجزئي والاستئناف وETag وSHA-256.
-- **الملفات الموجودة المتحقق منها: 8 ملفات / 1,816,924 بايت. عدد الملفات الجديدة المستوردة في هذه الجلسة: صفر. لم تُنقل 50 GB.**
-- روابط R2 العامة معطلة ولا توجد نطاقات عامة مرتبطة بالمساحة. لا توجد كتابة عامة في API.
-- لم يُعدّل مستودع MauriResults أو قاعدة بياناته أو نشره.
+- Cloudflare Worker: `mauri-study-app-api`
+- Cloudflare D1: `mauri-study-app-db`
+- Cloudflare R2: `mauri-study-files` (خاص وغير مكشوف مباشرة)
+- **19 ملف PDF منشورًا ومفهرسًا** بحجم إجمالي **3,872,734 بايت** بتاريخ 31 أكتوبر 2026، موزعة بين البكالوريا والخامسة الثانوية 5C/5D.
+- الهدف الذي لم يكتمل بعد: ترحيل المكتبة التعليمية الكبيرة متعددة المجلدات. يتطلب ذلك مصدرًا قابلًا للتنزيل الموثوق، حقوق إعادة النشر، ونقلًا متدرجًا بتكاليف مدروسة.
 
-## الموجود حاليًا والنواقص
+## التحقق
 
-الشيفرة الحالية توفر تصفية حسب المستوى والشعبة والمادة، والبحث النصي البسيط، والفهرس المحلي، والتنزيل الفردي والجماعي المتسلسل، والتحقق من الحجم وSHA-256، وقارئ PDF. أُضيف منع تكرار الطلب للملف نفسه وربط الأجزاء ببصمة المحتوى، وإرسال هوية تطبيق واضحة في User-Agent.
+- نجح بناء APK الخفيف، واختبارات Flutter والتحليل، وفحص التوقيع وSHA-256.
+- نجح بناء AAB تجريبي. الإنتاج الرسمي يحتاج مفاتيح رفع خاصة محفوظة في GitHub Secrets، وتوقيع AAB بمفتاح رفع مستقر.
+- ما زالت اختبارات التثبيت على الأجهزة الحقيقية وتوزيع Google Play خارج نطاق التحقق الحالي.
+- لا تُجرى تعديلات على موقع MauriResults أو نشره أو قاعدة بياناته من هذه المستودع.
 
-لم تكتمل الواجهة والأقسام المطلوبة كلها، والمفضلة، والإعدادات المستديمة، وتصحيحات الامتحانات، وإدارة طوابير التنزيل وإعادة المحاولة والمساحة الجزئية، والتصميم النهائي والأيقونة ومراجعة المعرّف. لم تُنفذ اختبارات الهواتف أو وضع الطيران أو القوائم الكبيرة أو الضغط. لم يكتمل استيراد Drive الآلي أو استئناف رفع الملفات الكبيرة بين عمليات التشغيل أو كشف التكرار بين مفاتيح مختلفة. لم يُبنَ AAB أو IPA ولم تُجهز عمليات نشر المتاجر.
+## تطوير المشروع
 
-## التطوير وإعادة البناء
-
-استخدم Flutter **3.47.9** وAndroid SDK؛ يتطلب iOS نظام macOS وXcode. لاستعادة الاعتماديات نفسها، استخرج `pubspec.lock` من ملف المشروعات الأصلي أعلاه إلى `app/` أولًا. ثم نفّذ:
+Flutter `3.47.9`، ودليل التطبيق في `app/`، وكود Workers في `backend/`، وأدوات الاستيراد والتحقق في `scripts/`.
 
 ```bash
-bash scripts/bootstrap_flutter.sh
+python scripts/generate_platforms.py
+python scripts/configure_android.py
 cd app
-flutter build apk --debug --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --tree-shake-icons --dart-define=API_BASE_URL=https://mauri-study-app-api.mauri-study-app.workers.dev
 ```
 
-ينشئ `scripts/generate_platforms.py` المنصات الناقصة في مشروع مؤقت، وينسخ ملفات المنصات فقط دون استبدال شيفرة التطبيق أو إضافة اختبار تطبيق العداد الافتراضي.
+- **[اختبارات API والاستيراد](https://github.com/mauriresults/mauri-study-app/actions/workflows/backend-tests.yml)**
+- **[تدقيق API والملفات](https://github.com/mauriresults/mauri-study-app/actions/workflows/api-audit.yml)**
 
-اختبارات الواجهة الخلفية: `cd backend && npm test`. اختبارات الاستيراد: `python -m unittest discover -s scripts/tests -v`. التدقيق الخارجي: `python backend/tools/audit_remote_api.py`؛ يقبل حدًا لحجم التنزيل الافتراضي 32 MiB حتى لا ينزّل مكتبة كبيرة دون قصد.
-
-موارد التطبيق الوحيدة: Worker `mauri-study-app-api`، وD1 `mauri-study-app-db`، وR2 `mauri-study-files`. عند النشر مستقبلًا استخدم الحساب الصحيح وإعداد `backend/wrangler.toml`، واختبر API خارجيًا بعد النشر.
-
-## الاستيراد والنشر مستقبلًا
-
-أداة `scripts/import_library.py` تقبل CSV لملفات PDF المحلية. عند `--publish` يلزم عمود `rights_evidence` يشير إلى إذن إعادة النشر؛ إتاحة الملف في Drive لا تثبت هذا الحق. ترفض الأداة استبدال مفتاح موجود بمحتوى مختلف، وتقرأ الملف من R2 وتحسب SHA-256 قبل الفهرسة. المثال في `scripts/library_manifest.example.csv` قالب يحتاج ملفًا حقيقيًا وبيانات تصنيف وحقوق مراجعة. لم تُشغّل عملية استيراد جديدة.
-
-تحتاج Google Play إلى مراجعة المعرّف والعلامة، وإكمال ميزات المنتج واختبارات الأجهزة، وتوقيع إصدار خاص محفوظ خارج Git، وبناء AAB موقع. تحتاج App Store إلى macOS وXcode وحساب Apple مخوّل وشهادات وتوقيع واختبارات iPhone وأرشفة. لا تضع مفاتيح Cloudflare أو R2 أو بيانات توقيع المتاجر في التطبيق أو المستودع، ولا تشترِ خدمات أو حسابات دون موافقة المالك.
+لا تضع مفاتيح Cloudflare أو Google Drive أو شهادات توقيع Google Play داخل المستودع أو التطبيق.
