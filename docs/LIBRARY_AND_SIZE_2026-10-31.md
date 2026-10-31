@@ -52,3 +52,13 @@ Build configurations:
 **Do not upload the preview AAB to Google Play**. To publish, configure a private Play upload key, run the signed workflow, and complete store compliance, testing and app registration. The app still needs real-device verification for each CPU architecture and for installing over older builds signed with different certificates.
 
 PDFs remain remote until students explicitly download them; the installer size does not grow with library size.
+
+## تحديث نقل المكتبة وتحسين تجربة المستخدم — 31 أكتوبر 2026
+
+- تحقّق الفهرس المنشور في D1: **50 ملف PDF**، بمجموع **27,868,674 بايت**، و**50 بصمة SHA-256 مختلفة**.
+- جدول قائمة النقل الخاصة: **50 imported**، **109 pending**، وباقي حجم الملفات المكتشفة **558,060,329 بايت**. هذه ليست نهاية فحص مصادر الكتب، إذ لم تُجرد كافة المجلدات الفرعية والمصادر الأخرى.
+- أُضيفت مواد فعلية إلى الخامسة (5C و5D) والسادسة والبكالوريا، وتظهر التصنيفات حسب الملفات المنشورة فقط.
+- نُقلت ملفات البكالوريا في الرياضيات العربية والأدبية والفيزياء والفكر الإسلامي والتاريخ والجغرافيا بحسب العناوين الواضحة، مع حذف سجل مكرر وكائن R2 مكرر دون المساس بالأصل.
+- تمت ترقية واجهة Flutter وإجراء اختبارات ناجحة، ودُمج PR #1، ونُشر تحديث `mauri-study-app-api` مع الاحتفاظ بربطي D1 وR2. أُصدرت معاينة Android خفيفة من commit `04b44a44`.
+- **لم تُنقل كافة ملفات المصادر أو ~50GB**. لا تُعرض الملفات المعلقة على أنها منشورة أو متاحة للتحميل، ولا يُسمح بالتحميل المدفوع دون ضبط ميزانية التخزين.
+- هذه العمليات لا تعدّل موقع MauriResults أو بنيته، ولا تعني أن التطبيق نشر في Google Play / Apple App Store.
