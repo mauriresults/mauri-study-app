@@ -264,51 +264,66 @@ class _StudyHomeState extends State<StudyHome> {
 
   Widget homePage() {
     final data=catalog;
-    final recent=data==null?<Resource>[]:filterResources(data).take(5).toList();
-    return RefreshIndicator(onRefresh:refresh,child:ListView(key:const PageStorageKey('home'),padding:const EdgeInsets.fromLTRB(20,20,20,24),physics:const AlwaysScrollableScrollPhysics(),children:[
-      Container(clipBehavior:Clip.antiAlias,decoration:BoxDecoration(color:studyGreen,borderRadius:BorderRadius.circular(28)),child:Stack(children:[
-        const PositionedDirectional(end:-14,top:10,child:ExcludeSemantics(child:Icon(Icons.auto_stories_rounded,size:160,color:Color(0x2439C994)))),
-        Padding(padding:const EdgeInsets.all(24),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),decoration:BoxDecoration(color:Colors.white.withValues(alpha:0.12),borderRadius:BorderRadius.circular(20)),
-            child:Text(t('معك في كل خطوة','À vos côtés, chaque jour'),style:const TextStyle(color:Colors.white,fontSize:12))),
-          const SizedBox(height:16),Text(t('مستقبلك يبدأ\nبدرس اليوم','Votre réussite,\nun cours à la fois.'),style:Theme.of(context).textTheme.headlineMedium?.copyWith(color:Colors.white)),
-          const SizedBox(height:12),Text(t('دروسك وتمارينك في مكان واحد. احفظ ما تحتاجه وادرس أينما كنت.','Cours, exercices et examens réunis. Enregistrez vos documents pour étudier partout.'),style:const TextStyle(color:Color(0xFFD4E5DC),height:1.7)),
-          const SizedBox(height:20),FilledButton.icon(onPressed:()=>browse(),style:FilledButton.styleFrom(backgroundColor:studyGold,foregroundColor:const Color(0xFF233C2D)),
-            icon:const Icon(Icons.explore_outlined),label:Text(t('استكشف المكتبة','Explorer la bibliothèque'))),
-        ])),
-      ])),
-      const SizedBox(height:16),Row(children:[
-        Expanded(child:StatPill(icon:Icons.menu_book_outlined,label:t('ملف في مكتبتك الدراسية','documents à découvrir'),value:'${data?.resources.length??0}')),
-        const SizedBox(width:12),Expanded(child:StatPill(icon:Icons.offline_pin_outlined,label:t('ملف محفوظ دون إنترنت','documents hors ligne'),value:'${local.length}')),
-      ]),
-      const SizedBox(height:18),InkWell(borderRadius:BorderRadius.circular(18),onTap:()=>browse(),child:InputDecorator(decoration:InputDecoration(prefixIcon:const Icon(Icons.search_rounded)),
-        child:Text(t('ماذا تريد أن تتعلم اليوم؟','Que voulez-vous apprendre aujourd’hui ?'),style:TextStyle(color:Theme.of(context).colorScheme.onSurfaceVariant)))),
-      if(data!=null&&data.resources.isNotEmpty)...[
-        SectionHeading(title:t('ابدأ من مستواك','Choisissez votre niveau')),
-        Wrap(spacing:10,runSpacing:10,children:data.levels.where((node)=>data.tracks.any((track)=>track.levelId==node.id&&data.subjects.any((subject)=>subject.trackId==track.id&&data.resources.any((file)=>file.subjectId==subject.id)))).map((node)=>ActionChip(avatar:const Icon(Icons.school_outlined,size:18),label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.id))).toList()),
+    if(data==null||data.resources.isEmpty) {
+      return RefreshIndicator(onRefresh:refresh,child:ListView(
+        physics:const AlwaysScrollableScrollPhysics(),padding:const EdgeInsets.all(20),
+        children:[EmptyPanel(icon:Icons.menu_book_outlined,
+          title:t('مكتبتك تنتظرك','Votre bibliothèque vous attend'),
+          message:t('اتصل بالإنترنت لجلب الملفات المنشورة.','Connectez-vous pour charger la bibliothèque.'),
+          actionLabel:t('تحديث المكتبة','Actualiser'),onAction:busy?null:refresh)]));
+    }
+    final publishedSubjects=data.resources.map((r)=>r.subjectId).toSet();
+    final activeTracks=data.subjects.where((s)=>publishedSubjects.contains(s.id))
+        .map((s)=>s.trackId).toSet();
+    final levels=data.levels.where((l)=>data.tracks.any(
+        (track)=>track.levelId==l.id&&activeTracks.contains(track.id))).toList();
+    final sections=[
+      ('book',Icons.local_library_outlined,t('الكتب والمراجع','Livres et références')),
+      ('lesson',Icons.auto_stories_outlined,t('الدروس','Cours')),
+      ('exam',Icons.assignment_outlined,t('مواضيع الامتحانات','Sujets d’examen')),
+    ];
+    return RefreshIndicator(onRefresh:refresh,child:ListView(
+      key:const PageStorageKey('home'),
+      padding:const EdgeInsets.fromLTRB(20,20,20,28),
+      physics:const AlwaysScrollableScrollPhysics(),
+      children:[
+        Text(t('دروسي موريتانيا','Mauri Student'),style:Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height:6),
+        Text(t('اختر السنة، ثم الشعبة، ثم المادة.','Choisissez le niveau, la série puis la matière.'),
+          style:Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height:18),
+        Card(child:ListTile(key:const ValueKey('home-search'),
+          leading:const Icon(Icons.search_rounded),
+          title:Text(t('بحث في الكتب والدروس والامتحانات','Rechercher un document')),
+          trailing:const Icon(Icons.chevron_right_rounded),onTap:()=>browse())),
+        SectionHeading(title:t('السنة الدراسية','Niveau scolaire')),
+        for(final node in levels)...[
+          Card(child:ListTile(leading:const Icon(Icons.school_outlined),
+            title:Text(node.display(french)),
+            trailing:const Icon(Icons.chevron_right_rounded),
+            onTap:()=>browse(selectedLevel:node.id))),
+          const SizedBox(height:8),
+        ],
+        SectionHeading(title:t('المحتوى الدراسي','Ressources scolaires')),
+        for(final item in sections.where((section)=>data.resources.any((r)=>r.browseKind==section.$1)))...[
+          Card(child:ListTile(leading:Icon(item.$2,color:Theme.of(context).colorScheme.primary),
+            title:Text(item.$3),trailing:const Icon(Icons.chevron_right_rounded),
+            onTap:()=>browse(category:item.$1))),
+          const SizedBox(height:8),
+        ],
+        SectionHeading(title:t('وصول سريع','Accès rapide')),
+        Row(children:[
+          Expanded(child:OutlinedButton.icon(onPressed:()=>setState((){tab=2;favoritesOnly=true;}),
+            icon:const Icon(Icons.bookmark_outline_rounded),label:Text(t('المفضلة','Favoris')))),
+          const SizedBox(width:8),
+          Expanded(child:OutlinedButton.icon(onPressed:()=>setState((){tab=2;favoritesOnly=false;}),
+            icon:const Icon(Icons.download_done_outlined),label:Text(t('التنزيلات','Téléchargés')))),
+        ]),
+        const SizedBox(height:12),
+        Text(t('${data.resources.length} ملفًا منشورًا','${data.resources.length} documents publiés'),
+          style:Theme.of(context).textTheme.labelSmall,textAlign:TextAlign.center),
       ],
-      SectionHeading(title:t('كل ما تحتاجه للدراسة','Tout pour vos études')),
-      LayoutBuilder(builder:(context,constraints){
-        final width=(constraints.maxWidth-12)/2;
-        final choices=[('lesson',Icons.auto_stories_outlined,t('الدروس','Cours')),('exam',Icons.assignment_outlined,t('الامتحانات','Examens')),('practice',Icons.edit_note_rounded,t('التمارين والملخصات','Exercices et résumés')),('book',Icons.local_library_outlined,t('الكتب والمراجع','Livres et références'))];
-        return Wrap(spacing:12,runSpacing:12,children:choices.where((choice)=>data!=null&&data.resources.any((file)=>choice.$1=='practice'?const {'exercise','summary'}.contains(file.kind):file.kind==choice.$1)).map((choice){
-          return SizedBox(width:width,child:Card(child:InkWell(
-            borderRadius:BorderRadius.circular(22),onTap:()=>browse(category:choice.$1),
-            child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Icon(choice.$2,color:Theme.of(context).colorScheme.primary,size:28),
-              const SizedBox(height:12),Text(choice.$3,style:Theme.of(context).textTheme.titleMedium),
-            ])),
-          )));
-        }).toList());
-      }),
-      if(data!=null&&data.resources.isNotEmpty)...[
-        SectionHeading(title:t('شعبتك، طريقك إلى النجاح','Votre série, votre parcours')),
-        Wrap(spacing:8,runSpacing:8,children:data.tracks.where((node)=>data.subjects.any((sub)=>sub.trackId==node.id&&data.resources.any((file)=>file.subjectId==sub.id))).map((node)=>ActionChip(label:Text(node.display(french)),onPressed:()=>browse(selectedLevel:node.levelId,selectedTrack:node.id))).toList()),
-      ],
-      SectionHeading(title:t('أحدث الإضافات','Derniers ajouts'),actionLabel:t('عرض الكل','Tout voir'),onAction:()=>browse()),
-      if(recent.isEmpty)EmptyPanel(icon:Icons.menu_book_outlined,title:t('مكتبتك تنتظرك','Votre bibliothèque vous attend'),message:t('حدّث الفهرس لعرض الملفات المتاحة.','Actualisez le catalogue pour découvrir les documents disponibles.'),actionLabel:t('تحديث المكتبة','Actualiser'),onAction:busy?null:refresh)
-      else ...recent.map(resourceTile),
-    ]));
+    ));
   }
 
   List<Resource> currentResources({Set<int>? allowed}) => catalog==null?[]:filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,section:section,year:year,query:query,allowedIds:allowed);
@@ -344,15 +359,27 @@ class _StudyHomeState extends State<StudyHome> {
 
   Widget libraryPage() {
     final resources=currentResources();
-    final categories=[('all',t('الكل','Tout')),('lesson',t('دروس','Cours')),('exam',t('امتحانات','Examens')),('practice',t('تمارين وملخصات','Exercices et résumés')),('book',t('مراجع','Livres'))];
+    final categories=[('all',t('الكل','Tout')),('book',t('كتب ومراجع','Livres')),('lesson',t('دروس','Cours')),('exercise',t('تمارين وسلاسل','Exercices')),('summary',t('ملخصات','Résumés')),('exam',t('مواضيع الامتحانات','Sujets d’examen')),('solution',t('تصحيحات وحلول','Corrigés'))];
     final visibleKinds=catalog==null?<Resource>[]:filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,query:query);
-    final visibleCategories=categories.where((cat)=>cat.$1=='all'||visibleKinds.any((item)=>cat.$1=='practice'?const {'exercise','summary'}.contains(item.kind):item.kind==cat.$1)).toList();
+    final visibleCategories=categories.where((cat)=>cat.$1=='all'||visibleKinds.any((item)=>item.browseKind==cat.$1)).toList();
+    final years=visibleKinds.where((item)=>item.examYear!=null&&(section=='all'||item.browseKind==section))
+        .map((item)=>item.examYear!).toSet().toList()..sort((a,b)=>b.compareTo(a));
+    final showFiles=subject!=null||((level==null&&track==null)&&(section!='all'||query.trim().isNotEmpty));
     return RefreshIndicator(onRefresh:refresh,child:CustomScrollView(key:const PageStorageKey('library'),physics:const AlwaysScrollableScrollPhysics(),slivers:[
       SliverPadding(padding:const EdgeInsets.fromLTRB(20,20,20,0),sliver:SliverToBoxAdapter(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         if(catalog!=null&&catalog!.resources.isNotEmpty)hierarchyPicker(catalog!),
         searchField(),const SizedBox(height:14),
         SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:visibleCategories.map((category)=>Padding(padding:const EdgeInsetsDirectional.only(end:8),child:ChoiceChip(
-          label:Text(category.$2),selected:section==category.$1,onSelected:(_)=>setState(()=>section=category.$1)))).toList())),
+          label:Text(category.$2),selected:section==category.$1,onSelected:(_)=>setState((){section=category.$1;year=null;})))).toList())),
+        if(subject!=null&&years.isNotEmpty&&(section=='exam'||section=='solution'))...[
+          const SizedBox(height:12),
+          Text(t('سنة الامتحان','Année de l’examen'),style:Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height:8),
+          SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:years.map((value)=>Padding(
+            padding:const EdgeInsetsDirectional.only(end:8),
+            child:ChoiceChip(label:Text('$value'),selected:year==value,
+              onSelected:(_)=>setState(()=>year=year==value?null:value)))).toList())),
+        ],
         const SizedBox(height:8),Row(children:[
           Expanded(child:Text(t('${resources.length} ملفًا متاحًا','${resources.length} documents'),style:Theme.of(context).textTheme.labelLarge)),
           OutlinedButton.icon(key:const ValueKey('filter-button'),onPressed:catalog==null?null:showFilters,icon:const Icon(Icons.tune_rounded,size:18),label:Text(t('تصفية','Filtres'))),
@@ -363,11 +390,14 @@ class _StudyHomeState extends State<StudyHome> {
           if(subject!=null)InputChip(label:Text(nodeLabel(catalog!.subjects,subject!)),onDeleted:()=>setState(()=>subject=null)),
           if(year!=null)InputChip(label:Text('$year'),onDeleted:()=>setState(()=>year=null)),
         ])),
-        if(resources.isNotEmpty&&(track!=null||subject!=null))Padding(padding:const EdgeInsets.only(bottom:14),child:OutlinedButton.icon(
+        if(showFiles&&resources.isNotEmpty&&subject!=null)Padding(padding:const EdgeInsets.only(bottom:14),child:OutlinedButton.icon(
           onPressed:transferring?null:()=>downloadMany(resources),icon:const Icon(Icons.download_for_offline_outlined),label:Text(t('حفظ هذه المجموعة دون إنترنت','Enregistrer cette sélection hors ligne')))),
         const SizedBox(height:8),
       ]))),
-      if(resources.isEmpty)SliverToBoxAdapter(child:EmptyPanel(icon:Icons.search_off_rounded,title:t('لا توجد ملفات هنا بعد','Aucun document ici pour le moment'),message:t('جرّب قسمًا آخر أو خفف الفلاتر والبحث.','Essayez une autre catégorie ou modifiez vos filtres.'),
+      if(!showFiles)SliverToBoxAdapter(child:EmptyPanel(
+         icon:Icons.school_outlined,title:t('اختر السنة والشعبة والمادة','Choisissez niveau, série et matière'),
+         message:t('ستظهر الملفات بعد اختيار المادة، ويمكنك البحث في جميع الملفات.','Choisissez votre matière ou utilisez la recherche.')))
+       else if(resources.isEmpty)SliverToBoxAdapter(child:EmptyPanel(icon:Icons.search_off_rounded,title:t('لا توجد ملفات هنا بعد','Aucun document ici pour le moment'),message:t('جرّب قسمًا آخر أو خفف الفلاتر والبحث.','Essayez une autre catégorie ou modifiez vos filtres.'),
         actionLabel:t('عرض كل الملفات','Afficher tous les documents'),onAction:()=>browse()))
       else SliverPadding(padding:const EdgeInsets.fromLTRB(20,0,20,24),sliver:SliverList.builder(itemCount:resources.length,itemBuilder:(_,index)=>resourceTile(resources[index]))),
     ]));
