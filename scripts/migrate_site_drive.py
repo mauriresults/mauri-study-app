@@ -121,6 +121,9 @@ def main() -> None:
     session = requests.Session()
     cf = requests.Session()
     cf.headers.update({"Authorization": "Bearer " + os.environ["CF_API_TOKEN"]})
+    owned_map = json.loads(
+        (Path(__file__).parent / "data" / "owned_drive_id_map.json").read_text(encoding="utf-8")
+    )["originalToCopy"]
     store = boto3.client("s3",
         endpoint_url=f"https://{account}.r2.cloudflarestorage.com",
         region_name="auto",
@@ -152,7 +155,10 @@ def main() -> None:
         try:
             with tempfile.TemporaryDirectory(prefix="mauri-study-") as directory:
                 path = Path(directory) / "reference.pdf"
-                download_pdf(session, file_id, path,
+                # Prefer authorized MauriResults-owned copies. Keep the original
+                # source ID for immutable audit/deduplication in app D1.
+                source_id = owned_map.get(file_id, file_id)
+                download_pdf(session, source_id, path,
                     os.environ["GOOGLE_DRIVE_ACCESS_TOKEN"], max_file)
                 size, digest = verify_pdf(path, advertised)
                 if size > budget:
