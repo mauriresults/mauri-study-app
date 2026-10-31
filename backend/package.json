@@ -1,0 +1,8 @@
+{
+  "name":"mauri-study-app-api",
+  "version":"0.1.0",
+  "type":"module",
+  "private":true,
+  "scripts":{"dev":"wrangler dev","deploy":"wrangler deploy","db:migrate":"wrangler d1 migrations apply mauri-study-app-db --remote","test":"node --test"},
+  "devDependencies":{"wrangler":"^4.0.0"}
+}

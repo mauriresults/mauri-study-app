@@ -1,0 +1,13 @@
+name = "mauri-study-app-api"
+main = "src/index.js"
+compatibility_date = "2026-10-31"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mauri-study-app-db"
+database_id = "124dee36-99ce-4365-8cf9-af0b01b2d1d7"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "mauri-study-files"
