@@ -345,7 +345,7 @@ class _StudyHomeState extends State<StudyHome> {
   Widget libraryPage() {
     final resources=currentResources();
     final categories=[('all',t('الكل','Tout')),('lesson',t('دروس','Cours')),('exam',t('امتحانات','Examens')),('practice',t('تمارين وملخصات','Exercices et résumés')),('book',t('مراجع','Livres'))];
-    final visibleKinds=filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,query:query);
+    final visibleKinds=catalog==null?<Resource>[]:filterResources(catalog!,levelId:level,trackId:track,subjectId:subject,query:query);
     final visibleCategories=categories.where((cat)=>cat.$1=='all'||visibleKinds.any((item)=>cat.$1=='practice'?const {'exercise','summary'}.contains(item.kind):item.kind==cat.$1)).toList();
     return RefreshIndicator(onRefresh:refresh,child:CustomScrollView(key:const PageStorageKey('library'),physics:const AlwaysScrollableScrollPhysics(),slivers:[
       SliverPadding(padding:const EdgeInsets.fromLTRB(20,20,20,0),sliver:SliverToBoxAdapter(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
