@@ -102,7 +102,7 @@ class AppStorage {
 
     final all = <dynamic>[];
     var cursor = 0;
-    // At most 100,000 files per sync; extend with background incremental sync later.
+    // At most 1000 pages per sync; older API versions return at most 100 items per page.
     for (var page = 0; page < 1000; page++) {
       final uri = Uri.parse('$api/v1/resources').replace(queryParameters: {
         'limit': '500', 'after': cursor.toString(),
@@ -116,7 +116,8 @@ class AppStorage {
       final next = (chunk['next_after'] as num?)?.toInt();
       if (next == null || next <= cursor) throw Exception('Invalid catalog pagination');
       cursor = next;
-      if (items.length < 500) break;
+      // Keep paginating until the API returns an empty page: older API versions
+      // may cap requested page sizes at 100, even when we request 500.
       if (page == 999) throw Exception('Catalog exceeds current synchronization limit');
     }
     map['resources'] = all;
