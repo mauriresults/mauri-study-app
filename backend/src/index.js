@@ -9,9 +9,10 @@ const error = (message, status) => send({error:message},status, {'cache-control'
 const itemJson = (row) => ({
   id: row.id, subject_id: row.subject_id, title_ar: row.title_ar, title_fr: row.title_fr,
   kind: row.kind, exam_year: row.exam_year, file_size: row.file_size,
-  sha256: row.sha256, updated_at: row.updated_at
+  sha256: row.sha256, updated_at: row.updated_at,
+  source_category: row.source_category || '', year_label: row.year_label || ''
 });
-const itemQuery = `SELECT id,subject_id,title_ar,title_fr,kind,exam_year,file_size,sha256,updated_at
+const itemQuery = `SELECT id,subject_id,title_ar,title_fr,kind,exam_year,file_size,sha256,updated_at,source_category,year_label
                    FROM resources WHERE published = 1`;
 function parseRange(value, total) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(value || '');
