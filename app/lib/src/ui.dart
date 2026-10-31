@@ -120,6 +120,9 @@ class ResourceTile extends StatelessWidget {
             IconButton(key:ValueKey('favorite-${resource.id}'),tooltip:t(favorite?'إزالة من المفضلة':'إضافة للمفضلة',favorite?'Retirer des favoris':'Ajouter aux favoris'),
               onPressed:onFavorite,icon:Icon(favorite?Icons.bookmark_rounded:Icons.bookmark_border_rounded,color:favorite?scheme.primary:scheme.onSurfaceVariant)),
             if(progress!=null)SizedBox(width:24,height:24,child:CircularProgressIndicator(strokeWidth:2,value:progress!>0?progress!.clamp(0,1).toDouble():null))
+            else if(!saved&&onDownload!=null)IconButton(key:ValueKey('download-${resource.id}'),
+              tooltip:t('تنزيل الملف','Télécharger le document'),onPressed:onDownload,
+              icon:const Icon(Icons.download_for_offline_outlined))
             else PopupMenuButton<String>(tooltip:t('خيارات الملف','Options du document'),icon:const Icon(Icons.more_horiz_rounded),
               onSelected:(action){
                 if(action=='open')onOpen();
