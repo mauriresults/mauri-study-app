@@ -135,7 +135,7 @@ class ResourceTile extends StatelessWidget {
               ]),
           ]),
         ]),
-        Padding(padding:const EdgeInsets.only(top:10),child:Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+        Padding(padding:const EdgeInsets.only(top:10),child:Wrap(alignment:WrapAlignment.spaceBetween,spacing:4,runSpacing:4,children:[
           TextButton.icon(key:ValueKey('preview-${resource.id}'),
             onPressed:onPreview,icon:const Icon(Icons.visibility_outlined,size:18),
             style:TextButton.styleFrom(visualDensity:VisualDensity.compact,padding:const EdgeInsets.symmetric(horizontal:8)),
