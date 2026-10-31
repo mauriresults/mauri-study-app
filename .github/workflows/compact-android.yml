@@ -48,6 +48,7 @@ jobs:
           import zipfile
           files=list(Path('distribution').glob('*.apk'))
           assert len(files)==2
+          assert all(f.stat().st_size < 30_000_000 for f in files), 'Compact APK exceeds 30 MB limit'
           for path in files:
             with zipfile.ZipFile(path) as apk:
               assert apk.testzip() is None
