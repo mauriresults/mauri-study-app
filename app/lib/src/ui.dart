@@ -85,10 +85,10 @@ class ResourceTile extends StatelessWidget {
   final String subject;
   final bool french,saved,favorite;
   final double? progress;
-  final VoidCallback onOpen,onFavorite;
+  final VoidCallback onOpen,onPreview,onFavorite;
   final VoidCallback? onDownload,onDelete;
   const ResourceTile({required this.resource,required this.subject,required this.french,
-    required this.saved,required this.favorite,required this.onOpen,required this.onFavorite,
+    required this.saved,required this.favorite,required this.onOpen,required this.onPreview,required this.onFavorite,
     this.progress,this.onDownload,this.onDelete,super.key});
   String t(String ar,String fr)=>french?fr:ar;
   @override
@@ -135,6 +135,16 @@ class ResourceTile extends StatelessWidget {
               ]),
           ]),
         ]),
+        Padding(padding:const EdgeInsets.only(top:10),child:Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+          TextButton.icon(key:ValueKey('preview-${resource.id}'),
+            onPressed:onPreview,icon:const Icon(Icons.visibility_outlined,size:18),
+            style:TextButton.styleFrom(visualDensity:VisualDensity.compact,padding:const EdgeInsets.symmetric(horizontal:8)),
+            label:Text(t('مشاهدة الآن','Voir maintenant'))),
+          TextButton.icon(key:ValueKey('save-${resource.id}'),
+            onPressed:saved?null:onDownload,icon:Icon(saved?Icons.offline_pin_rounded:Icons.download_outlined,size:18),
+            style:TextButton.styleFrom(visualDensity:VisualDensity.compact,padding:const EdgeInsets.symmetric(horizontal:8)),
+            label:Text(saved?t('محفوظ','Enregistré'):t('تنزيل','Télécharger'))),
+        ])),
         if(progress!=null)Padding(padding:const EdgeInsets.only(top:12),child:ClipRRect(borderRadius:BorderRadius.circular(4),
           child:LinearProgressIndicator(value:progress!.clamp(0,1).toDouble(),minHeight:3))),
       ])),
