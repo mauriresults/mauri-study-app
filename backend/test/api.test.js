@@ -148,6 +148,15 @@ test('invalid and multipart ranges are rejected without reading the object body'
   assert.equal(calls.length,0);
 });
 
+test('PDF preview uses inline disposition; explicit download attachment is separate', async () => {
+  const {env} = fileFixture();
+  const preview = await worker.fetch(request('/v1/files/1',{method:'HEAD'}),env);
+  assert.match(preview.headers.get('Content-Disposition'),/^inline;/);
+  assert.equal(preview.headers.get('Accept-Ranges'),'bytes');
+  const download = await worker.fetch(request('/v1/files/1?download=1',{method:'HEAD'}),env);
+  assert.match(download.headers.get('Content-Disposition'),/^attachment;/);
+});
+
 test('invalid pagination cursors are rejected', async () => {
   for (const cursor of ['-1','abc','1.5','9007199254740993']) {
     const res = await worker.fetch(request(`/v1/resources?after=${cursor}`),env);
