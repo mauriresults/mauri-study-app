@@ -285,10 +285,15 @@ class _StudyHomeState extends State<StudyHome> {
       LayoutBuilder(builder:(context,constraints){
         final width=(constraints.maxWidth-12)/2;
         final choices=[('lesson',Icons.auto_stories_outlined,t('الدروس','Cours')),('exam',Icons.assignment_outlined,t('الامتحانات','Examens')),('practice',Icons.edit_note_rounded,t('التمارين والملخصات','Exercices et résumés')),('book',Icons.local_library_outlined,t('الكتب والمراجع','Livres et références'))];
-        return Wrap(spacing:12,runSpacing:12,children:choices.map((choice)=>SizedBox(width:width,child:Card(child:InkWell(borderRadius:BorderRadius.circular(22),onTap:()=>browse(category:choice.$1),
-          child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Icon(choice.$2,color:Theme.of(context).colorScheme.primary,size:28),const SizedBox(height:12),Text(choice.$3,style:Theme.of(context).textTheme.titleMedium),
-          ]))))).toList());
+        return Wrap(spacing:12,runSpacing:12,children:choices.map((choice){
+          return SizedBox(width:width,child:Card(child:InkWell(
+            borderRadius:BorderRadius.circular(22),onTap:()=>browse(category:choice.$1),
+            child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Icon(choice.$2,color:Theme.of(context).colorScheme.primary,size:28),
+              const SizedBox(height:12),Text(choice.$3,style:Theme.of(context).textTheme.titleMedium),
+            ])),
+          )));
+        }).toList());
       }),
       if(data!=null&&data.tracks.isNotEmpty)...[
         SectionHeading(title:t('شعبتك، طريقك إلى النجاح','Votre série, votre parcours')),
