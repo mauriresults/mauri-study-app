@@ -37,4 +37,16 @@ void main(){
     expect(filterResources(c,section:'practice',query:'mathematiques').single.id,1);
     expect(filterResources(c,allowedIds:{2}).single.id,2);
   });
+  test('search matches subject and track names in Arabic and French',(){
+    final c=Catalog.fromMap({
+      'levels':[{'id':'5as','name_ar':'الخامسة','name_fr':'Cinquième'}],
+      'tracks':[{'id':'5c','level_id':'5as','name_ar':'الخامسة C','name_fr':'5C'}],
+      'subjects':[{'id':'5c-math','track_id':'5c','name_ar':'الرياضيات','name_fr':'Mathématiques'}],
+      'resources':[{'id':1,'subject_id':'5c-math','title_ar':'حسابات','title_fr':'Calculs','kind':'lesson'}],
+    });
+    expect(filterResources(c,query:'رياضيات').length,1);
+    expect(filterResources(c,query:'mathematiques').length,1);
+    expect(filterResources(c,query:'cinquieme').length,1);
+  });
+
 }
