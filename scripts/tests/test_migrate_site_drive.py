@@ -38,6 +38,26 @@ class ResumeMigrationValidationTest(unittest.TestCase):
         with self.assertRaises(module.ImportErrorWithStatus):
             module.verify_pdf(self.path, 0)
 
+    def test_batch_scans_past_oversized_files(self):
+        rows = [
+            {'drive_file_id': 'big', 'advertised_size': 90 * 1024 * 1024},
+            {'drive_file_id': 'small-1', 'advertised_size': 2 * 1024 * 1024},
+            {'drive_file_id': 'small-2', 'advertised_size': 3 * 1024 * 1024},
+        ]
+        selected, skipped = module.select_batch(rows, 2, 10 * 1024 * 1024, 75 * 1024 * 1024)
+        self.assertEqual([r['drive_file_id'] for r in selected], ['small-1', 'small-2'])
+        self.assertEqual(skipped, 1)
+
+    def test_batch_respects_total_byte_budget(self):
+        rows = [
+            {'drive_file_id': 'a', 'advertised_size': 6},
+            {'drive_file_id': 'b', 'advertised_size': 6},
+            {'drive_file_id': 'c', 'advertised_size': 4},
+        ]
+        selected, skipped = module.select_batch(rows, 3, 10, 10)
+        self.assertEqual([r['drive_file_id'] for r in selected], ['a', 'c'])
+        self.assertEqual(skipped, 1)
+
     def test_storage_keys_never_include_unsafe_segments(self):
         row = {'level_id':'bac','track_id':'site-bac-d','drive_file_id':'123_Ab-c'}
         self.assertEqual(module.make_key(row),'site-import/bac/site-bac-d/123_Ab-c.pdf')
