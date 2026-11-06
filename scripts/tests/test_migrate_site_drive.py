@@ -58,6 +58,19 @@ class ResumeMigrationValidationTest(unittest.TestCase):
         self.assertEqual([r['drive_file_id'] for r in selected], ['a', 'c'])
         self.assertEqual(skipped, 1)
 
+    def test_batch_ignores_unknown_sizes_until_metadata_verified(self):
+        self.assertIn('advertised_size > 0', module.PENDING_SQL)
+
+    def test_expired_drive_token_does_not_mark_source_unavailable(self):
+        class DeniedResponse:
+            status_code = 401
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+        class Session:
+            def get(self, *args, **kwargs): return DeniedResponse()
+        with self.assertRaises(SystemExit):
+            module.download_pdf(Session(), 'sample', self.path, 'bad-token', 1024)
+
     def test_storage_keys_never_include_unsafe_segments(self):
         row = {'level_id':'bac','track_id':'site-bac-d','drive_file_id':'123_Ab-c'}
         self.assertEqual(module.make_key(row),'site-import/bac/site-bac-d/123_Ab-c.pdf')

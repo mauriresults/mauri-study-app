@@ -26,7 +26,7 @@ PENDING_SQL = """
  SELECT drive_file_id, original_title, level_id, track_id, subject_id,
         kind, exam_year, advertised_size
  FROM site_source_files
- WHERE state IN ({states}) AND LOWER(original_title) LIKE '%.pdf'
+ WHERE state IN ({states}) AND LOWER(original_title) LIKE '%.pdf' AND advertised_size > 0
  ORDER BY advertised_size, drive_file_id LIMIT ?
 """
 FAILURE_SCHEMA = """
@@ -68,8 +68,12 @@ def download_pdf(session: requests.Session, file_id: str, destination: Path,
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     with session.get(url, headers={"Authorization": f"Bearer {access_token}"},
                      stream=True, timeout=(20, 90), allow_redirects=True) as response:
-        if response.status_code in (401, 403, 404):
-            raise ImportErrorWithStatus(f"Drive HTTP {response.status_code}", "unavailable")
+        if response.status_code in (401, 403):
+            # Do not mark readable source records as unavailable merely because
+            # the workflow OAuth token expired or lacks file permissions.
+            raise SystemExit(f"Drive HTTP {response.status_code}: refresh Google Drive access credentials")
+        if response.status_code == 404:
+            raise ImportErrorWithStatus("Drive HTTP 404", "unavailable")
         response.raise_for_status()
         declared = int(response.headers.get("content-length") or 0)
         if declared > max_size:
