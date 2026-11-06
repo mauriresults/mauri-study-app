@@ -85,6 +85,26 @@ def download_pdf(session: requests.Session, file_id: str, destination: Path,
                 output.write(block)
 
 
+def select_batch(rows: list[dict[str, Any]], limit: int, byte_budget: int,
+                 max_file_bytes: int) -> tuple[list[dict[str, Any]], int]:
+    """Select eligible sources across the scanned queue, without consuming slots on oversized files."""
+    selected = []
+    skipped = 0
+    remaining = byte_budget
+    for row in rows:
+        size = int(row.get("advertised_size") or 0)
+        if size > max_file_bytes or size > remaining:
+            skipped += 1
+            continue
+        selected.append(row)
+        # Unknown-size PDFs are validated after download and debit actual bytes.
+        if size:
+            remaining -= size
+        if len(selected) >= limit:
+            break
+    return selected, skipped
+
+
 def make_key(row: dict[str, Any]) -> str:
     for field in ("drive_file_id", "level_id", "track_id"):
         value = row[field]
@@ -140,16 +160,17 @@ def main() -> None:
 
     sql(FAILURE_SCHEMA)
     states = "'pending','failed'" if args.retry_failed else "'pending'"
-    rows = sql(PENDING_SQL.format(states=states), [args.limit])
+    # Inspect the entire known queue (currently hundreds of entries), rather than
+    # taking only LIMIT rows then potentially skipping all of them for size.
+    # D1 caps SQL results, so scan a bounded 1000 entries per invocation.
+    rows = sql(PENDING_SQL.format(states=states), [1000])
     budget = args.max_total_mb * 1024 * 1024
     max_file = args.max_file_mb * 1024 * 1024
-    result: dict[str, Any] = {"examined": 0, "imported": 0, "duplicate": 0,
+    selected, skipped = select_batch(rows, args.limit, budget, max_file)
+    result: dict[str, Any] = {"scanned": len(rows), "skipped_oversized": skipped,
+                               "examined": 0, "imported": 0, "duplicate": 0,
                                "failed": 0, "unavailable": 0, "bytes": 0}
-    for row in rows:
-        advertised = row["advertised_size"] or 0
-        if advertised > max_file or advertised > budget:
-            # Leave pending for another batch rather than claiming success.
-            continue
+    for row in selected:
         result["examined"] += 1
         file_id = row["drive_file_id"]
         try:
